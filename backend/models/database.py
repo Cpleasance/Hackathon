@@ -84,6 +84,7 @@ class Employee(Base):
     # relationships
     skills = relationship("EmployeeSkill", back_populates="employee", cascade="all, delete-orphan")
     availability = relationship("EmployeeAvailability", back_populates="employee", cascade="all, delete-orphan")
+    breaks = relationship("EmployeeBreak", back_populates="employee", cascade="all, delete-orphan")
     schedules = relationship("TaskSchedule", back_populates="employee")
 
     def to_dict(self, include_skills=False):
@@ -160,6 +161,36 @@ class EmployeeAvailability(Base):
             "is_recurring": self.is_recurring,
             "override_date": self.override_date.isoformat() if self.override_date else None,
             "is_available": self.is_available,
+        }
+
+
+# ---------------------------------------------------------------------------
+#  Employee Breaks
+# ---------------------------------------------------------------------------
+class EmployeeBreak(Base):
+    __tablename__ = "employee_breaks"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    employee_id = Column(
+        String(36), ForeignKey("employees.id", ondelete="CASCADE"), nullable=False,
+    )
+    day_of_week = Column(SmallInteger)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
+    is_recurring = Column(Boolean, nullable=False, default=True)
+    override_date = Column(Date)
+
+    employee = relationship("Employee", back_populates="breaks")
+
+    def to_dict(self):
+        return {
+            "id": str(self.id),
+            "employee_id": str(self.employee_id),
+            "day_of_week": self.day_of_week,
+            "start_time": self.start_time.isoformat() if self.start_time else None,
+            "end_time": self.end_time.isoformat() if self.end_time else None,
+            "is_recurring": self.is_recurring,
+            "override_date": self.override_date.isoformat() if self.override_date else None,
         }
 
 
