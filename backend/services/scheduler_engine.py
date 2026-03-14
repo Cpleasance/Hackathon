@@ -32,8 +32,14 @@ from backend.services.conflict_resolver import detect_overlaps
 
 
 def _schema_dow(py_weekday: int) -> int:
-    """Convert Python weekday (Mon=0) to schema day_of_week (Sun=0)."""
-    return (py_weekday + 1) % 7
+    """
+    Convert Python weekday (Mon=0) to schema day_of_week.
+
+    NOTE: The seed data and existing availability records use the same
+    convention as Python's datetime (Mon=0, Sun=6), so we simply return
+    the incoming value. This keeps the ORM logic aligned with the data.
+    """
+    return py_weekday
 
 
 def _get_employee_window(session: Session, employee_id, target_date: date) -> tuple[time, time] | None:
