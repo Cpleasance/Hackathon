@@ -190,6 +190,7 @@ class Task(Base):
     schedule = relationship("TaskSchedule", back_populates="task", uselist=False)
 
     def to_dict(self):
+        def fmt(dt): return dt.isoformat() + "Z" if dt else None
         return {
             "id": str(self.id),
             "task_name": self.task_name,
@@ -198,12 +199,12 @@ class Task(Base):
             "priority_weight": self.priority_weight,
             "required_skill_id": str(self.required_skill_id),
             "required_skill_name": self.required_skill.name if self.required_skill else None,
-            "preferred_start": self.preferred_start.isoformat() if self.preferred_start else None,
-            "deadline": self.deadline.isoformat() if self.deadline else None,
+            "preferred_start": fmt(self.preferred_start),
+            "deadline": fmt(self.deadline),
             "status": self.status,
             "customer_name": self.customer_name,
             "customer_notes": self.customer_notes,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": fmt(self.created_at),
         }
 
 
@@ -235,6 +236,7 @@ class TaskSchedule(Base):
     employee = relationship("Employee", back_populates="schedules")
 
     def to_dict(self):
+        def fmt(dt): return dt.isoformat() + "Z" if dt else None
         return {
             "id": str(self.id),
             "task_id": str(self.task_id),
@@ -242,8 +244,8 @@ class TaskSchedule(Base):
             "employee_id": str(self.employee_id),
             "employee_name": self.employee.name if self.employee else None,
             "scheduled_date": self.scheduled_date.isoformat(),
-            "start_time": self.start_time.isoformat(),
-            "end_time": self.end_time.isoformat(),
+            "start_time": fmt(self.start_time),
+            "end_time": fmt(self.end_time),
             "status": self.status,
             "customer_name": self.task.customer_name if self.task else None,
             "duration_minutes": self.task.duration_minutes if self.task else None,

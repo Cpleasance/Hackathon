@@ -45,7 +45,8 @@ const Tasks = (() => {
                         <div class="task-meta">
                             <span>${Utils.esc(t.customer_name || '—')}</span>
                             <span>${Utils.esc(t.required_skill_name || '')}</span>
-                            ${t.deadline ? `<span>Due ${Utils.formatTime(t.deadline)}</span>` : ''}
+                            ${t.preferred_start ? `<span style="color:var(--primary)">Prefers: ${Utils.formatDateTime(t.preferred_start)}</span>` : ''}
+                            ${t.deadline ? `<span style="color:var(--warning)">Due: ${Utils.formatDateTime(t.deadline)}</span>` : ''}
                         </div>
                     </div>
                     <div class="task-duration">${Utils.durationLabel(t.duration_minutes)}</div>
@@ -75,8 +76,8 @@ const Tasks = (() => {
             required_skill_id: form.required_skill_id.value,
             customer_name: form.customer_name.value,
             customer_notes: form.customer_notes.value,
-            preferred_start: form.preferred_start.value || null,
-            deadline: form.deadline.value || null,
+            preferred_start: form.preferred_start.value ? new Date(form.preferred_start.value).toISOString().replace('Z', '+00:00') : null,
+            deadline: form.deadline.value ? new Date(form.deadline.value).toISOString().replace('Z', '+00:00') : null,
         };
 
         try {
