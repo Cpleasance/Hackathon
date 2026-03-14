@@ -193,7 +193,7 @@ def auto_schedule_all(session: Session, target_date: date) -> dict:
     unassigned = (
         session.query(Task)
         .filter(Task.status == "unassigned")
-        .order_by(Task.priority_weight.desc(), Task.deadline.is_(None), Task.deadline.asc())
+        .order_by(Task.priority_weight.desc(), Task.deadline.asc().nullslast())
         .all()
     )
 
