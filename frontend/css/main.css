@@ -134,6 +134,8 @@ body {
     letter-spacing: 1px;
     color: var(--text-muted);
     padding: 16px 10px 6px;
+    pointer-events: none;
+    user-select: none;
 }
 
 .nav-item {

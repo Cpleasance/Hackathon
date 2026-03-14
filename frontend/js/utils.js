@@ -84,10 +84,12 @@ const Utils = (() => {
 
     // --- Duration label ---
     function durationLabel(mins) {
-        if (mins < 60) return `${mins}m`;
+        if (!mins) return '—';
         const h = Math.floor(mins / 60);
         const m = mins % 60;
-        return m > 0 ? `${h}h ${m}m` : `${h}h`;
+        if (h > 0 && m > 0) return `⏱ ${h}h ${m}m`;
+        if (h > 0) return `⏱ ${h}h`;
+        return `⏱ ${m}m`;
     }
 
     // --- Escape HTML ---

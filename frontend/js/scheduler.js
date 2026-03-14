@@ -109,8 +109,12 @@ const ScheduleBoard = (() => {
         btn.innerHTML = '<span class="loading-spinner"></span> Running…';
         try {
             const result = await API.autoSchedule({ date: currentDate });
-            Utils.toast(`Scheduled ${result.scheduled_count} tasks (${result.failed_count} failed)`,
-                        result.failed_count > 0 ? 'warning' : 'success');
+            if (result.failed_count > 0) {
+                const reasons = result.failed.map(f => `${f.task_name}: ${f.reason}`).join('\n');
+                alert(`Scheduled ${result.scheduled_count} tasks. ${result.failed_count} tasks failed:\n\n${reasons}`);
+            } else {
+                Utils.toast(`Successfully scheduled ${result.scheduled_count} tasks.`, 'success');
+            }
             render();
         } catch (err) {
             Utils.toast(err.error || 'Auto-schedule failed', 'error');

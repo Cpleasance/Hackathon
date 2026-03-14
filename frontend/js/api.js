@@ -16,10 +16,23 @@ const API = (() => {
         };
         if (body) opts.body = JSON.stringify(body);
 
-        const res = await fetch(`${BASE}${path}`, opts);
-        const data = await res.json();
-        if (!res.ok) throw data;
-        return data;
+        try {
+            const res = await fetch(`${BASE}${path}`, opts);
+            let data;
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                data = await res.json();
+            } else {
+                data = { error: `Server error (${res.status}): ${await res.text()}` };
+            }
+            if (!res.ok) throw data;
+            return data;
+        } catch (err) {
+            // Already formatted {error: ...}
+            if (err.error) throw err;
+            // Native JS errors like Network Error or TypeError
+            throw { error: err.message || 'API Communication failed' };
+        }
     }
 
     async function cancelTask(id) {
