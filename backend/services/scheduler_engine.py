@@ -109,6 +109,7 @@ def find_earliest_slot(
     win_end_dt = datetime.combine(target_date, window[1])
 
     total_needed = timedelta(minutes=duration_minutes + buffer_minutes)
+    duration_only = timedelta(minutes=duration_minutes)
 
     # Earliest we'd consider
     earliest = win_start_dt
@@ -125,8 +126,10 @@ def find_earliest_slot(
         if be > cursor:
             cursor = be  # skip past this booking
 
-    # Check after last booking
-    if cursor + total_needed <= win_end_dt:
+    # Check after last booking. For the final task of the day we only
+    # require that the task itself fits before the end of the window;
+    # we don't force an additional buffer *after* closing time.
+    if cursor + duration_only <= win_end_dt:
         return cursor
 
     return None
