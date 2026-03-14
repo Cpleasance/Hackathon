@@ -161,3 +161,38 @@ def handle_overrun(schedule_id):
     session = get_session()
     result = resolve_overrun(session, schedule_id, new_end_dt)
     return jsonify(result)
+
+
+@bp.route("/<schedule_id>/force", methods=["PUT"])
+def force_reassign(schedule_id):
+    """
+    Manual Takeover (Admin Override).
+    Bypass the rules engine to force-assign a schedule to any time/employee.
+    """
+    data = request.get_json(force=True)
+    session = get_session()
+    
+    sched = session.query(TaskSchedule).filter_by(id=schedule_id).first()
+    if not sched:
+        raise NotFoundError("Schedule not found")
+        
+    new_emp_id = data.get("employee_id")
+    new_start = data.get("start_time")
+    new_end = data.get("end_time")
+    
+    if not new_emp_id or not new_start or not new_end:
+        raise ValidationError("employee_id, start_time, and end_time are required")
+        
+    try:
+        start_dt = datetime.fromisoformat(new_start)
+        end_dt = datetime.fromisoformat(new_end)
+    except ValueError:
+        raise ValidationError("Dates must be ISO-8601")
+        
+    sched.employee_id = new_emp_id
+    sched.start_time = start_dt
+    sched.end_time = end_dt
+    sched.scheduled_date = start_dt.date()
+    
+    session.commit()
+    return jsonify(sched.to_dict())

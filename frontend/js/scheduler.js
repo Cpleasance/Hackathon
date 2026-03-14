@@ -8,11 +8,26 @@ const ScheduleBoard = (() => {
     const HOURS = [];
     for (let h = HOUR_START; h <= HOUR_END; h++) HOURS.push(h);
 
+    let activeEmployees = [];
+    let currentOverrideSchedule = null;
+
     function init() {
         document.getElementById('board-prev').addEventListener('click', () => navigate(-1));
         document.getElementById('board-next').addEventListener('click', () => navigate(1));
         document.getElementById('board-today').addEventListener('click', () => { currentDate = Utils.todayISO(); render(); });
         document.getElementById('btn-auto-schedule').addEventListener('click', runAutoSchedule);
+        
+        document.getElementById('override-form').addEventListener('submit', handleOverrideSubmit);
+        
+        // Use event delegation for clicking on appt blocks
+        document.getElementById('schedule-rows').addEventListener('click', e => {
+            const block = e.target.closest('.appt-block');
+            if (block) {
+                const schedId = block.dataset.scheduleId;
+                if (schedId) openOverrideModal(schedId);
+            }
+        });
+
         render();
     }
 
@@ -32,6 +47,8 @@ const ScheduleBoard = (() => {
                 API.getEmployees(),
                 API.getSchedules(`date=${currentDate}`),
             ]);
+            
+            activeEmployees = employees; // cache for the override dropdown
 
             // Group schedules by employee
             const byEmp = {};
@@ -72,8 +89,8 @@ const ScheduleBoard = (() => {
 
             blocks += `
                 <div class="appt-block priority-${pl} status-${s.status}"
-                     style="left: ${left}%; width: ${width}%;"
-                     title="${Utils.esc(s.task_name)} — ${Utils.esc(s.customer_name || '')}\n${Utils.formatTime(s.start_time)}–${Utils.formatTime(s.end_time)}"
+                     style="left: ${left}%; width: ${width}%; cursor: pointer;"
+                     title="Click to manually override\n\n${Utils.esc(s.task_name)} — ${Utils.esc(s.customer_name || '')}\n${Utils.formatTime(s.start_time)}–${Utils.formatTime(s.end_time)}"
                      data-schedule-id="${s.id}">
                     <div class="appt-name">${Utils.esc(s.customer_name || s.task_name)}</div>
                     <div class="appt-time">${Utils.formatTime(s.start_time)}</div>
@@ -121,6 +138,57 @@ const ScheduleBoard = (() => {
         } finally {
             btn.disabled = false;
             btn.innerHTML = '⚡ Auto-Schedule';
+        }
+    }
+    
+    async function openOverrideModal(scheduleId) {
+        try {
+            const sched = await API.getSchedule(scheduleId);
+            currentOverrideSchedule = sched;
+            
+            document.getElementById('override_task_name').value = sched.task_name + (sched.customer_name ? ` (${sched.customer_name})` : '');
+            
+            const empSelect = document.getElementById('override_employee');
+            empSelect.innerHTML = activeEmployees.map(e => 
+                `<option value="${e.id}" ${e.id === sched.employee_id ? 'selected' : ''}>${Utils.esc(e.name)}</option>`
+            ).join('');
+            
+            // Format time correctly for input type="time"
+            const st = new Date(sched.start_time);
+            const et = new Date(sched.end_time);
+            document.getElementById('override_start').value = Utils.formatTime(st);
+            document.getElementById('override_end').value = Utils.formatTime(et);
+            
+            Utils.openModal('modal-override');
+        } catch (err) {
+            Utils.toast('Failed to load schedule details for override', 'error');
+        }
+    }
+    
+    async function handleOverrideSubmit(e) {
+        e.preventDefault();
+        if (!currentOverrideSchedule) return;
+        
+        const empId = document.getElementById('override_employee').value;
+        const stStr = document.getElementById('override_start').value;
+        const etStr = document.getElementById('override_end').value;
+        
+        // combine original date with new times
+        const baseDate = currentDate; // YYYY-MM-DD
+        const startIso = `${baseDate}T${stStr}:00Z`;
+        const endIso = `${baseDate}T${etStr}:00Z`;
+        
+        try {
+            await API.forceReassign(currentOverrideSchedule.id, {
+                employee_id: empId,
+                start_time: startIso,
+                end_time: endIso
+            });
+            Utils.toast('Task reassigned successfully.', 'success');
+            Utils.closeModal('modal-override');
+            render();
+        } catch (err) {
+            Utils.toast(err.error || 'Failed to force reassign', 'error');
         }
     }
 

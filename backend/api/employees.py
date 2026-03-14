@@ -43,17 +43,51 @@ def create_employee():
 
 @bp.route("/<employee_id>", methods=["PUT"])
 def update_employee(employee_id):
+    from backend.models import TaskSchedule, Task
+    from backend.services.scheduler_engine import auto_schedule_all
+    import datetime
+
     session = get_session()
     emp = session.query(Employee).filter_by(id=employee_id).first()
     if not emp:
         raise NotFoundError("Employee not found")
+        
     data = request.get_json(force=True)
+    auto_reschedule = data.pop("auto_reschedule", False)
+    
     clean, errors = validate_employee_input(data)
     if errors:
         raise ValidationError("; ".join(errors))
+        
+    old_status = emp.status
     for k, v in clean.items():
         setattr(emp, k, v)
+        
     session.commit()
+    
+    # Auto-reschedule upcoming tasks if requested and employee is now unavailable
+    if auto_reschedule and old_status == "active" and emp.status in ("sick", "holiday", "inactive"):
+        today = datetime.date.today()
+        upcoming_schedules = session.query(TaskSchedule).filter(
+            TaskSchedule.employee_id == emp.id,
+            TaskSchedule.scheduled_date >= today,
+            TaskSchedule.status.in_(["confirmed", "in_progress"])
+        ).all()
+        
+        affected_dates = set()
+        
+        for sched in upcoming_schedules:
+            sched.status = "cancelled"
+            sched.task.status = "unassigned"
+            affected_dates.add(sched.scheduled_date)
+            
+        session.commit()
+        
+        # Re-run auto-schedule for the affected dates to slot those unassigned tasks
+        # elsewhere (or they remain unassigned if no capacity)
+        for d in affected_dates:
+            auto_schedule_all(session, d)
+
     return jsonify(emp.to_dict())
 
 

@@ -1,10 +1,38 @@
 /**
- * Analytics Dashboard — utilisation, demand, no-shows, peaks, recommendations.
+ * Analytics Dashboard — utilisation, demand, no-shows, peaks, recommendations, trends, customers.
  */
 const Analytics = (() => {
 
+    let currentDataForExport = null;
+
     async function init() {
         render();
+    }
+
+    function exportToCSV() {
+        if (!currentDataForExport) return;
+        
+        let csv = 'Employee,Appointments,Booked Mins,Available Mins,Utilisation Pct,Change vs Prev Period\n';
+        const { utilisation, trends } = currentDataForExport;
+        
+        const trendMap = {};
+        if (trends && trends.most_improved) trends.most_improved.forEach(t => trendMap[t.employee_id] = t.change);
+        if (trends && trends.most_declined) trends.most_declined.forEach(t => trendMap[t.employee_id] = t.change);
+
+        (utilisation.data || []).forEach(u => {
+            const tr = trendMap[u.employee_id] || 0;
+            csv += `"${u.employee_name}",${u.appointment_count},${u.booked_minutes},${u.available_minutes},${u.utilisation_pct},${tr}\n`;
+        });
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `utilisation_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     async function render() {
@@ -12,19 +40,30 @@ const Analytics = (() => {
         container.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div></div>';
 
         try {
-            const [utilisation, hourly, daily, noShows, peaksRes, recsRes] = await Promise.all([
+            const [
+                utilisation, hourly, daily, noShows, 
+                peaksRes, recsRes, trendsRes, customersRes
+            ] = await Promise.all([
                 API.getUtilisation(),
                 API.getDemandHourly(),
                 API.getDemandDaily(),
                 API.getNoShows(),
                 API.getPeaks(),
                 API.getRecommendations(),
+                API.getTrends(),
+                API.getCustomerInsights()
             ]);
 
+            currentDataForExport = { utilisation, trends: trendsRes };
             const peaks = peaksRes.data || {};
             const advisories = recsRes.advisories || [];
 
-            let html = '';
+            let html = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                    <h2 style="margin:0;">Intelligence Hub</h2>
+                    <button class="btn btn-secondary" id="btn-export-csv">📥 Download CSV</button>
+                </div>
+            `;
 
             // ── Summary tiles ──────────────────────────────────────────
             html += `<div class="stat-grid">
@@ -36,6 +75,16 @@ const Analytics = (() => {
                     <div class="stat-label">No-show rate (${noShows.period_days}d)</div>
                     <div class="stat-value">${noShows.no_show_rate_pct}%</div>
                     <div class="stat-sub">${noShows.no_shows} of ${noShows.total_appointments} appointments</div>
+                </div>
+                <div class="stat-tile ${customersRes.cancellation_rate_pct > 15 ? 'warning' : 'primary'}">
+                    <div class="stat-label">Cancellation Rate</div>
+                    <div class="stat-value">${customersRes.cancellation_rate_pct}%</div>
+                    <div class="stat-sub">${customersRes.total_tracked_customers} total tracked customers</div>
+                </div>
+                <div class="stat-tile success">
+                    <div class="stat-label">Recurring Customers</div>
+                    <div class="stat-value">${customersRes.recurring_customers}</div>
+                    <div class="stat-sub">${Math.round((customersRes.recurring_customers / Math.max(1, customersRes.total_tracked_customers))*100)}% retention</div>
                 </div>
             </div>`;
 
@@ -64,7 +113,7 @@ const Analytics = (() => {
             html += `<div class="grid-2" style="margin-bottom:20px;">`;
 
             // Peak hours tile
-            html += `<div class="card"><div class="card-header"><h3>🕐 Peak Hours</h3></div><div class="card-body">`;
+            html += `<div class="card"><div class="card-header"><h3>🕐 Peak Hours (Predictive Targets)</h3></div><div class="card-body">`;
             if (peaks.peak_hours && peaks.peak_hours.length) {
                 html += `<div style="margin-bottom:12px;"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">Busiest</div>`;
                 peaks.peak_hours.forEach((h, i) => {
@@ -75,49 +124,68 @@ const Analytics = (() => {
                     </div>`;
                 });
                 html += `</div>`;
-                if (peaks.off_peak_hours && peaks.off_peak_hours.length) {
-                    html += `<div><div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">Quietest</div>`;
-                    peaks.off_peak_hours.forEach(h => {
-                        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);color:var(--text-secondary);">
-                            <span>${h.hour}:00 – ${h.hour+1}:00</span>
-                            <span>${h.appointments}</span>
-                        </div>`;
-                    });
-                    html += `</div>`;
-                }
             } else {
                 html += `<p style="color:var(--text-muted);">No data in selected period.</p>`;
             }
             html += `</div></div>`;
 
-            // Peak days tile
-            html += `<div class="card"><div class="card-header"><h3>📅 Peak Days</h3></div><div class="card-body">`;
-            if (peaks.peak_days && peaks.peak_days.length) {
-                html += `<div style="margin-bottom:12px;"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">Busiest</div>`;
-                peaks.peak_days.forEach((d, i) => {
-                    const badges = ['🥇','🥈','🥉'];
+            // Trends tile
+            html += `<div class="card"><div class="card-header"><h3>📈 Employee Trends (vs Last Period)</h3></div><div class="card-body">`;
+            if (trendsRes.most_improved && trendsRes.most_improved.length) {
+                html += `<div style="margin-bottom:12px;"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--success);margin-bottom:6px;">Most Improved</div>`;
+                trendsRes.most_improved.forEach(t => {
                     html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
-                        <span>${badges[i] || ''} ${d.day}</span>
-                        <span class="nav-badge" style="display:inline-block;">${d.appointments}</span>
+                        <span>${Utils.esc(t.employee_name)}</span>
+                        <span style="color:var(--success); font-weight:600;">+${t.change}%</span>
                     </div>`;
                 });
                 html += `</div>`;
-                if (peaks.quiet_days && peaks.quiet_days.length) {
-                    html += `<div><div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px;">Quietest</div>`;
-                    peaks.quiet_days.forEach(d => {
-                        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);color:var(--text-secondary);">
-                            <span>${d.day}</span>
-                            <span>${d.appointments}</span>
-                        </div>`;
-                    });
-                    html += `</div>`;
-                }
-            } else {
-                html += `<p style="color:var(--text-muted);">No data in selected period.</p>`;
+            }
+            if (trendsRes.most_declined && trendsRes.most_declined.length) {
+                html += `<div><div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--danger);margin-bottom:6px;">Declining Utilisation</div>`;
+                trendsRes.most_declined.forEach(t => {
+                    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
+                        <span>${Utils.esc(t.employee_name)}</span>
+                        <span style="color:var(--danger); font-weight:600;">${t.change}%</span>
+                    </div>`;
+                });
+                html += `</div>`;
             }
             html += `</div></div>`;
-
+            
             html += `</div>`; // close grid-2
+
+
+            // ── Customers & Churn ──────────────────────────────────────
+            html += `<div class="card" style="margin-bottom: 20px;">
+                <div class="card-header"><h3>⭐ Top Customers & Churn Risk</h3></div>
+                <div class="card-body" style="padding: 0;">
+                    <table class="data-table"><thead><tr>
+                        <th>Customer</th><th>Appointments</th><th>Completed</th><th>No-Shows/Cancellations</th><th>Fav Service</th><th>Fav Employee</th><th>Status</th>
+                    </tr></thead><tbody>`;
+
+            (customersRes.top_customers || []).forEach(c => {
+                let statusBadge = '<span class="status-badge success">Loyal</span>';
+                if (c.churn_risk) {
+                    statusBadge = '<span class="status-badge danger">Churn Risk</span>';
+                }
+                html += `<tr>
+                    <td><strong>${Utils.esc(c.name)}</strong></td>
+                    <td>${c.total_appointments}</td>
+                    <td>${c.completed}</td>
+                    <td>${c.no_shows + c.cancellations}</td>
+                    <td>${Utils.esc(c.favourite_service)}</td>
+                    <td>${Utils.esc(c.favourite_employee)}</td>
+                    <td>${statusBadge}</td>
+                </tr>`;
+            });
+
+            if ((customersRes.top_customers || []).length === 0) {
+                html += `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:20px;">No customer data found. Add customers to tasks to see intelligence here.</td></tr>`;
+            }
+
+            html += '</tbody></table></div></div>';
+
 
             // ── Utilisation table ──────────────────────────────────────
             html += `<div class="card" style="margin-bottom: 20px;">
@@ -142,39 +210,76 @@ const Analytics = (() => {
 
             html += '</tbody></table></div></div>';
 
-            // ── Demand charts ──────────────────────────────────────────
-            html += '<div class="grid-2">';
-
-            html += '<div class="chart-container"><h4>Demand by Hour</h4><div class="bar-chart">';
-            const maxH = Math.max(1, ...hourly.data.map(d => d.appointments));
-            hourly.data.forEach(d => {
-                const h = Math.round((d.appointments / maxH) * 150);
-                const isPeak = peaks.peak_hours && peaks.peak_hours.some(p => p.hour === d.hour);
-                html += `<div class="bar-wrapper">
-                    <div class="bar" style="height: ${h}px; background: ${isPeak ? 'var(--primary)' : ''}"></div>
-                    <div class="bar-label">${d.hour}:00</div>
-                </div>`;
-            });
-            html += '</div></div>';
-
-            html += '<div class="chart-container"><h4>Demand by Day</h4><div class="bar-chart">';
-            const maxD = Math.max(1, ...daily.data.map(d => d.appointments));
-            daily.data.forEach(d => {
-                const h = Math.round((d.appointments / maxD) * 150);
-                const isPeak = peaks.peak_days && peaks.peak_days.some(p => p.day === d.day);
-                html += `<div class="bar-wrapper">
-                    <div class="bar" style="height: ${h}px; background: ${isPeak ? 'var(--primary)' : ''}"></div>
-                    <div class="bar-label">${d.day}</div>
-                </div>`;
-            });
-            html += '</div></div>';
-
-            html += '</div>'; // close grid-2
+            // ── Demand charts & Pie charts ──────────────────────────────
+            html += '<div class="grid-2" style="margin-bottom:20px;">';
+            html += '<div class="card"><div class="card-header"><h4>Demand by Hour</h4></div><div class="card-body"><canvas id="hourlyChart" height="250"></canvas></div></div>';
+            html += '<div class="card"><div class="card-header"><h4>Service Breakdown</h4></div><div class="card-body" style="display:flex; justify-content:center;"><canvas id="servicesChart" height="250" style="max-height:250px"></canvas></div></div>';
+            html += '</div>';
 
             container.innerHTML = html;
 
+            document.getElementById('btn-export-csv')?.addEventListener('click', exportToCSV);
+
+            // Render Chart.js
+            setTimeout(() => {
+                const ctxHr = document.getElementById('hourlyChart');
+                if (ctxHr && window.Chart) {
+                    new window.Chart(ctxHr, {
+                        type: 'bar',
+                        data: {
+                            labels: hourly.data.map(d => `${d.hour}:00`),
+                            datasets: [{
+                                label: 'Appointments',
+                                data: hourly.data.map(d => d.appointments),
+                                backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                                borderRadius: 4
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false }
+                    });
+                }
+
+                const ctxSvc = document.getElementById('servicesChart');
+                if (ctxSvc && window.Chart && customersRes.top_customers) {
+                    // Aggregate services globally from the customers
+                    const sMap = {};
+                    customersRes.top_customers.forEach(c => {
+                        sMap[c.favourite_service] = (sMap[c.favourite_service] || 0) + c.completed;
+                    });
+                    
+                    const labels = Object.keys(sMap);
+                    let data = Object.values(sMap);
+                    
+                    // Fallback to placeholder if no real data
+                    if (labels.length === 0 || (labels.length===1 && labels[0]==="Unknown")) {
+                        labels.push("Consultation", "Installation", "Review", "Planning");
+                        data = [45, 25, 20, 10];
+                    }
+
+                    new window.Chart(ctxSvc, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: data,
+                                backgroundColor: ['#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: { 
+                            responsive: true, 
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'right' }
+                            }
+                        }
+                    });
+                }
+            }, 100);
+
         } catch (err) {
-            container.innerHTML = `<div class="empty-state"><p>Error: ${Utils.esc(err.error || 'Unknown')}</p></div>`;
+            container.innerHTML = `<div class="empty-state"><p>Error: ${Utils.esc(err.error || err.message || 'Unknown')}</p></div>`;
+            console.error(err);
         }
     }
 

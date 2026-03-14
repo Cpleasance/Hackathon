@@ -6,7 +6,7 @@ from backend.utils.errors import ValidationError
 from backend.services.analytics_engine import (
     get_utilisation_by_employee, get_demand_by_hour, get_demand_by_day,
     get_no_show_rate, get_staffing_recommendation, get_peak_times,
-    get_recommendations,
+    get_recommendations, get_trends, get_customer_insights,
 )
 
 bp = Blueprint("analytics", __name__, url_prefix="/api/analytics")
@@ -85,3 +85,20 @@ def recommendations():
     session = get_session()
     data = get_recommendations(session, start_date, end_date)
     return jsonify(data)
+
+
+@bp.route("/trends", methods=["GET"])
+def trends():
+    start_date, end_date = _parse_date_range()
+    session = get_session()
+    data = get_trends(session, start_date, end_date)
+    return jsonify(data)
+
+
+@bp.route("/customers", methods=["GET"])
+def customers():
+    start_date, end_date = _parse_date_range()
+    session = get_session()
+    data = get_customer_insights(session, start_date, end_date)
+    return jsonify(data)
+

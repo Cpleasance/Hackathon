@@ -50,6 +50,10 @@ const API = (() => {
         createEmployee: (d) => _req('POST', '/employees', d),
         updateEmployee: (id, d) => _req('PUT', `/employees/${id}`, d),
         assignSkill: (id, d) => _req('POST', `/employees/${id}/skills`, d),
+        
+        // Integrations
+        triggerSync: (d) => _req('POST', '/calendar/sync', d),
+        triggerEmail: (d) => _req('POST', '/calendar/email', d),
 
         // Tasks
         getTasks: (status = '') => _req('GET', `/tasks${status ? `?status=${status}` : ''}`),
@@ -62,6 +66,7 @@ const API = (() => {
         getSchedules: (params = '') => _req('GET', `/schedules?${params}`),
         createSchedule: (d) => _req('POST', '/schedules', d),
         updateStatus: (id, d) => _req('PATCH', `/schedules/${id}/status`, d),
+        forceReassign: (id, d) => _req('PUT', `/schedules/${id}/force`, d),
         autoSchedule: (d) => _req('POST', '/schedules/auto-schedule', d),
         reportOverrun: (id, d) => _req('POST', `/schedules/${id}/overrun`, d),
 
@@ -84,5 +89,7 @@ const API = (() => {
         // Analytics Extras
         getPeaks: (params = '') => _req('GET', `/analytics/peaks?${params}`),
         getRecommendations: (params = '') => _req('GET', `/analytics/recommendations?${params}`),
+        getTrends: (params = '') => _req('GET', `/analytics/trends?${params}`),
+        getCustomerInsights: (params = '') => _req('GET', `/analytics/customers?${params}`),
     };
 })();
