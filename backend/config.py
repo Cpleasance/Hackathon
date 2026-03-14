@@ -28,6 +28,8 @@ class Config:
     PRIORITY_WEIGHTS = SETTINGS.get("priority", {})
     BUSINESS = SETTINGS.get("business", {})
     ANALYTICS = SETTINGS.get("analytics", {})
+    # Operating days as 1–7 (Mon=1…Sun=7); fall back to Mon–Sat if not set
+    OPERATING_DAYS = BUSINESS.get("operating_days_1_7") or [1, 2, 3, 4, 5, 6]
 
 
 class DevelopmentConfig(Config):

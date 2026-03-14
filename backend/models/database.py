@@ -147,6 +147,10 @@ class EmployeeAvailability(Base):
     override_date = Column(Date)
     is_available = Column(Boolean, nullable=False, default=True)
 
+    __table_args__ = (
+        Index("ix_emp_avail_emp_recurring_dow", "employee_id", "is_recurring", "day_of_week"),
+    )
+
     employee = relationship("Employee", back_populates="availability")
 
     def to_dict(self):
@@ -177,6 +181,10 @@ class EmployeeBreak(Base):
     end_time = Column(Time, nullable=False)
     is_recurring = Column(Boolean, nullable=False, default=True)
     override_date = Column(Date)
+
+    __table_args__ = (
+        Index("ix_emp_breaks_emp_recurring_dow", "employee_id", "is_recurring", "day_of_week"),
+    )
 
     employee = relationship("Employee", back_populates="breaks")
 
@@ -222,6 +230,10 @@ class Task(Base):
     required_skill = relationship("Skill", back_populates="tasks")
     schedule = relationship("TaskSchedule", back_populates="task", uselist=False)
 
+    __table_args__ = (
+        Index("ix_tasks_status", "status"),
+    )
+
     def to_dict(self):
         def fmt(dt): return dt.isoformat() + "Z" if dt else None
         return {
@@ -264,6 +276,11 @@ class TaskSchedule(Base):
     )
     completed_at = Column(DateTime)
     notes = Column(Text)
+
+    __table_args__ = (
+        Index("ix_task_schedules_emp_date", "employee_id", "scheduled_date"),
+        Index("ix_task_schedules_emp_date_status", "employee_id", "scheduled_date", "status"),
+    )
 
     task = relationship("Task", back_populates="schedule")
     employee = relationship("Employee", back_populates="schedules")

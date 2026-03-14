@@ -43,10 +43,21 @@ const ScheduleBoard = (() => {
         container.innerHTML = '<div class="loading-overlay"><div class="loading-spinner"></div></div>';
 
         try {
-            const [employees, schedules] = await Promise.all([
+            const [employees, schedules, settings] = await Promise.all([
                 API.getEmployees(),
                 API.getSchedules(`date=${currentDate}`),
+                API.getSettings(),
             ]);
+
+            const biz = settings.business || {};
+            const operating = biz.operating_days_1_7 || biz.operating_days || [1,2,3,4,5,6];
+            const weekday1_7 = (new Date(currentDate + 'T12:00:00Z').getUTCDay() + 6) % 7 + 1; // Mon=1…Sun=7
+
+            if (!operating.includes(weekday1_7)) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-icon">🚪</div><p>Closed</p></div>';
+                updateStats([], []);
+                return;
+            }
             
             activeEmployees = employees; // cache for the override dropdown
 
