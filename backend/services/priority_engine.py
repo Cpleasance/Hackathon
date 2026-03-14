@@ -18,10 +18,15 @@ from pathlib import Path
 
 _SETTINGS_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "settings.json"
 
+_priority_config_cache: dict | None = None
+
 
 def _load_priority_config() -> dict:
-    with open(_SETTINGS_PATH) as fh:
-        return json.load(fh).get("priority", {})
+    global _priority_config_cache
+    if _priority_config_cache is None:
+        with open(_SETTINGS_PATH) as fh:
+            _priority_config_cache = json.load(fh).get("priority", {})
+    return _priority_config_cache
 
 
 def urgency_score(deadline: datetime | None, now: datetime | None = None) -> float:

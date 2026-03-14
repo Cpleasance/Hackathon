@@ -11,10 +11,15 @@ from pathlib import Path
 
 _SETTINGS_PATH = Path(__file__).resolve().parent.parent.parent / "config" / "settings.json"
 
+_buffer_config_cache: dict | None = None
+
 
 def _load_buffer_config() -> dict:
-    with open(_SETTINGS_PATH) as fh:
-        return json.load(fh).get("scheduling", {})
+    global _buffer_config_cache
+    if _buffer_config_cache is None:
+        with open(_SETTINGS_PATH) as fh:
+            _buffer_config_cache = json.load(fh).get("scheduling", {})
+    return _buffer_config_cache
 
 
 def get_buffer_minutes(skill_category: str | None) -> int:
