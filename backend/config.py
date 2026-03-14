@@ -20,7 +20,7 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", os.urandom(32).hex())
     DATABASE_URL = os.environ.get(
         "DATABASE_URL",
-        "mysql+pymysql://root:password@localhost:3306/workflow_scheduler",
+        "postgresql://postgres:P9rStDvUmWvWRWRF@db.wjnykbqpwodjxsumqcoe.supabase.co:5432/postgres",
     )
     SQLALCHEMY_ECHO = False
     SETTINGS = _load_settings()
@@ -44,7 +44,7 @@ class TestingConfig(Config):
     TESTING = True
     DATABASE_URL = os.environ.get(
         "TEST_DATABASE_URL",
-        "mysql+pymysql://root:password@localhost:3306/workflow_scheduler_test",
+        "postgresql://postgres:P9rStDvUmWvWRWRF@db.wjnykbqpwodjxsumqcoe.supabase.co:5432/postgres",
     )
 
 

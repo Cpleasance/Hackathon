@@ -30,7 +30,7 @@ def get_utilisation_by_employee(session: Session, start_date: date, end_date: da
             Employee.daily_minutes,
             func.count(TaskSchedule.id).label("appointment_count"),
             func.sum(
-                func.timestampdiff(text('MINUTE'), TaskSchedule.start_time, TaskSchedule.end_time)
+                func.extract("epoch", TaskSchedule.end_time - TaskSchedule.start_time) / 60
             ).label("booked_minutes"),
         )
         .join(Employee, TaskSchedule.employee_id == Employee.id)
@@ -86,7 +86,7 @@ def get_demand_by_day(session: Session, start_date: date, end_date: date) -> lis
     """
     results = (
         session.query(
-            (func.dayofweek(TaskSchedule.scheduled_date) - 1).label("dow"),
+            func.extract("dow", TaskSchedule.scheduled_date).label("dow"),
             func.count(TaskSchedule.id).label("count"),
         )
         .filter(
