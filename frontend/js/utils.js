@@ -24,6 +24,13 @@ const Utils = (() => {
         return new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     }
 
+    function formatDateTime(iso) {
+        return new Date(iso).toLocaleString('en-GB', {
+            weekday: 'short', day: 'numeric', month: 'short',
+            hour: '2-digit', minute: '2-digit'
+        });
+    }
+
     function formatDateISO(d) {
         const dt = new Date(d);
         return dt.toISOString().split('T')[0];
@@ -92,7 +99,7 @@ const Utils = (() => {
     }
 
     return {
-        toast, formatDate, formatTime, formatDateISO, addDays, todayISO,
+        toast, formatDate, formatTime, formatDateTime, formatDateISO, addDays, todayISO,
         openModal, closeModal, priorityColor, priorityLabel,
         proficiencyPips, statusBadge, durationLabel, esc,
     };
