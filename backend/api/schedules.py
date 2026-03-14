@@ -57,6 +57,20 @@ def create_schedule():
     if task.status != "unassigned":
         raise ConflictError(f"Task is already {task.status}")
 
+    # Enforce task duration
+    scheduled_duration = (clean["end_time"] - clean["start_time"]).total_seconds() / 60
+    if scheduled_duration < task.duration_minutes:
+        raise ValidationError(f"Scheduled time ({int(scheduled_duration)}m) is less than task duration ({task.duration_minutes}m)")
+
+    # Check employee skill
+    from backend.models import EmployeeSkill
+    es = session.query(EmployeeSkill).filter_by(
+        employee_id=clean["employee_id"], 
+        skill_id=task.required_skill_id
+    ).first()
+    if not es:
+        raise ValidationError("Employee does not have the required skill for this task")
+
     # Check for overlaps
     overlaps = detect_overlaps(
         session, clean["employee_id"], clean["start_time"], clean["end_time"]
@@ -102,6 +116,8 @@ def update_status(schedule_id):
         sched.task.status = "unassigned"
     elif new_status == "in_progress":
         sched.task.status = "in_progress"
+    elif new_status in ("confirmed", "no_show"):
+        sched.task.status = "scheduled"
     sched.task.updated_at = datetime.now(timezone.utc)
     session.commit()
     return jsonify(sched.to_dict())

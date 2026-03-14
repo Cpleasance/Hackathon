@@ -154,10 +154,13 @@ def resolve_overrun(session: Session, schedule_id: str, new_end: datetime) -> di
                 "new_employee": alt["employee_name"],
             })
         else:
+            # Reassignment failed. Delete the schedule to prevent overlap and return task to queue
+            task.status = "unassigned"
+            session.delete(ds)
             failed.append({
-                "task_id": str(ds.task_id),
+                "task_id": str(task.id),
                 "task_name": task.task_name,
-                "reason": "No alternative employee available",
+                "reason": "No alternative employee available; task returned to unassigned queue.",
             })
 
     session.commit()

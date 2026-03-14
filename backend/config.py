@@ -20,7 +20,7 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", os.urandom(32).hex())
     DATABASE_URL = os.environ.get(
         "DATABASE_URL",
-        f"sqlite:///{BASE_DIR}/scheduler.db",
+        "mysql+pymysql://root:password@localhost:3306/workflow_scheduler",
     )
     SQLALCHEMY_ECHO = False
     SETTINGS = _load_settings()
@@ -44,7 +44,7 @@ class TestingConfig(Config):
     TESTING = True
     DATABASE_URL = os.environ.get(
         "TEST_DATABASE_URL",
-        "postgresql://scheduler:scheduler@localhost:5432/scheduler_test",
+        "mysql+pymysql://root:password@localhost:3306/workflow_scheduler_test",
     )
 
 

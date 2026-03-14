@@ -53,16 +53,13 @@ scheduler/
 
 ### 1. Database Setup
 ```bash
-# Create the PostgreSQL database
-createdb scheduler
-
-# Apply the schema + seed data
-psql -d scheduler -f migrations/001_initial_schema.sql
+# Apply the schema + seed data (creates the workflow_scheduler database)
+mysql -u root -p < migrations/001_initial_schema.sql
 ```
 
 ### 2. Environment
 ```bash
-export DATABASE_URL="postgresql://user:pass@localhost:5432/scheduler"
+export DATABASE_URL="mysql+pymysql://root:password@localhost:3306/workflow_scheduler"
 export FLASK_ENV=development
 ```
 
@@ -93,7 +90,7 @@ python -m pytest tests/ -v
 - **Overlap detection**: queries for time-range intersections
 - **Overrun handling**: extends overrunning tasks and cascade-checks downstream
 - **Auto-reassignment**: finds alternative qualified employees when conflicts arise
-- **PostgreSQL exclusion constraint**: hardware-level overlap prevention as last defence
+- **Application-level overlap tracking**: strong overlap prevention check before every assignment
 
 ### Priority Engine (`services/priority_engine.py`)
 - **Composite scoring**: combines priority weight, urgency, revenue proxy, and loyalty tier
@@ -141,9 +138,8 @@ python -m pytest tests/ -v
 ## Safety-Critical Design Decisions
 
 1. **ACID transactions** — all schedule mutations commit atomically
-2. **PostgreSQL exclusion constraint** — `no_employee_overlap` enforced at DB level
-3. **Application-level overlap check** — `detect_overlaps()` before every assignment
-4. **Input validation** — every endpoint validates and sanitises before processing
+2. **Application-level overlap check** — `detect_overlaps()` before every assignment ensures no double-booking
+3. **Input validation** — every endpoint validates and sanitises before processing
 5. **Buffer zones** — configurable prep/cleanup time prevents cascading delays
 6. **Automatic conflict resolution** — overruns trigger cascade reassignment
 7. **Status-aware queries** — cancelled/no-show schedules excluded from conflict checks

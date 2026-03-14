@@ -85,9 +85,10 @@ const Utils = (() => {
 
     // --- Escape HTML ---
     function esc(str) {
+        if (!str) return '';
         const div = document.createElement('div');
-        div.textContent = str || '';
-        return div.innerHTML;
+        div.textContent = str;
+        return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
     return {
