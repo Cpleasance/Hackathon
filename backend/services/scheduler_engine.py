@@ -207,12 +207,23 @@ def auto_schedule_all(session: Session, target_date: date) -> dict:
 
     Returns: { scheduled: [...], failed: [...] }
     """
+    # Start from all unassigned tasks, then restrict to those that are
+    # actually intended for the target date. This prevents the scheduler
+    # from attempting to cram historical/future backlog from other days
+    # into a single date on the board.
     unassigned = (
         session.query(Task)
         .filter(Task.status == "unassigned")
         .order_by(Task.priority_weight.desc(), Task.deadline.asc().nullslast())
         .all()
     )
+
+    # Only consider tasks whose preferred_start (if set) falls on
+    # target_date. Tasks without a preferred_start are also eligible.
+    unassigned = [
+        t for t in unassigned
+        if (t.preferred_start is None) or (t.preferred_start.date() == target_date)
+    ]
 
     # Compute composite scores and sort
     scored = []
