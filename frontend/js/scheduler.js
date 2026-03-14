@@ -50,6 +50,18 @@ const ScheduleBoard = (() => {
             
             activeEmployees = employees; // cache for the override dropdown
 
+            // Fetch breaks for all employees, filtered to current day-of-week
+            const breaksByEmp = {};
+            const dow = (new Date(currentDate + 'T12:00:00Z').getUTCDay() + 6) % 7; // Mon=0
+            await Promise.all(employees.map(async emp => {
+                try {
+                    const res = await API.getBreaks(emp.id);
+                    breaksByEmp[emp.id] = (res.breaks || []).filter(b =>
+                        b.is_recurring ? b.day_of_week === dow : b.override_date === currentDate
+                    );
+                } catch { breaksByEmp[emp.id] = []; }
+            }));
+
             // Group schedules by employee
             const byEmp = {};
             schedules.forEach(s => {
@@ -60,7 +72,7 @@ const ScheduleBoard = (() => {
             let html = '';
             employees.forEach(emp => {
                 const empScheds = byEmp[emp.id] || [];
-                html += renderEmployeeRow(emp, empScheds);
+                html += renderEmployeeRow(emp, empScheds, breaksByEmp[emp.id] || []);
             });
 
             if (!employees.length) {
@@ -74,10 +86,28 @@ const ScheduleBoard = (() => {
         }
     }
 
-    function renderEmployeeRow(emp, schedules) {
+    function renderEmployeeRow(emp, schedules, breaks = []) {
         const totalMinutes = (HOUR_END - HOUR_START) * 60;
 
         let blocks = '';
+
+        // Render break blocks first (underneath appointments)
+        breaks.forEach(b => {
+            const [sh, sm] = b.start_time.split(':').map(Number);
+            const [eh, em] = b.end_time.split(':').map(Number);
+            const startMin = (sh - HOUR_START) * 60 + sm;
+            const endMin = (eh - HOUR_START) * 60 + em;
+            const left = Math.max(0, (startMin / totalMinutes) * 100);
+            const width = Math.max(1, ((endMin - startMin) / totalMinutes) * 100);
+            blocks += `
+                <div class="break-block"
+                     style="left: ${left}%; width: ${width}%;"
+                     title="Break: ${b.start_time}–${b.end_time}">
+                    <div class="appt-name">Break</div>
+                    <div class="appt-time">${b.start_time}–${b.end_time}</div>
+                </div>`;
+        });
+
         schedules.forEach(s => {
             const startDt = new Date(s.start_time);
             const endDt = new Date(s.end_time);

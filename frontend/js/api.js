@@ -73,6 +73,11 @@ const API = (() => {
         autoSchedule: (d) => _req('POST', '/schedules/auto-schedule', d),
         reportOverrun: (id, d) => _req('POST', `/schedules/${id}/overrun`, d),
 
+        // Breaks
+        getBreaks: (empId) => _req('GET', `/breaks/${empId}`),
+        addBreak: (empId, d) => _req('POST', `/breaks/${empId}`, d),
+        deleteBreak: (recId) => _req('DELETE', `/breaks/record/${recId}`),
+
         // Availability
         getAvailability: (empId) => _req('GET', `/availability/${empId}`),
         addAvailability: (empId, d) => _req('POST', `/availability/${empId}`, d),
