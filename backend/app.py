@@ -3,6 +3,8 @@ Scheduler — Flask Application Factory
 """
 import os
 import sys
+from dotenv import load_dotenv
+load_dotenv()
 
 # Ensure the project root is on sys.path so `backend.*` imports work
 # regardless of the working directory.
