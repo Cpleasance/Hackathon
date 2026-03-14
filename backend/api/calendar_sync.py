@@ -42,4 +42,21 @@ def calendar_webhook():
     availability updates.
     """
     # Placeholder — validates signature, parses event, updates availability
-    return jsonify({"status": "received"}), 200
+@bp.route("/email", methods=["POST"])
+def trigger_email():
+    """
+    Mock endpoint to send weekly summary emails to employees.
+    Body: { "employee_id": "...", "type": "weekly_stats" }
+    """
+    data = request.get_json(force=True)
+    employee_id = data.get("employee_id")
+    if not employee_id:
+        raise ValidationError("employee_id is required")
+
+    # In production, this would render an HTML email template with their stats
+    # and send via SMTP / SendGrid.
+    return jsonify({
+        "status": "email_queued",
+        "employee_id": employee_id,
+        "message": "Weekly statistics email queued for delivery."
+    })

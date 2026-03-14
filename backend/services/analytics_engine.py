@@ -293,3 +293,146 @@ def get_recommendations(session: Session, start_date: date, end_date: date) -> d
         "advisories": advisories,
         "peaks": peaks,
     }
+
+
+def get_trends(session: Session, start_date: date, end_date: date) -> dict:
+    """
+    Compare current period utilisation to the previous period of the same length
+    to find most improved and most declined employees, as well as high/low demand.
+    """
+    period_days = (end_date - start_date).days + 1
+    prev_start = start_date - timedelta(days=period_days)
+    prev_end = start_date - timedelta(days=1)
+
+    current_util = get_utilisation_by_employee(session, start_date, end_date)
+    prev_util = get_utilisation_by_employee(session, prev_start, prev_end)
+
+    prev_map = {u["employee_id"]: u["utilisation_pct"] for u in prev_util}
+
+    trends = []
+    for cur in current_util:
+        prev_pct = prev_map.get(cur["employee_id"], 0)
+        diff = cur["utilisation_pct"] - prev_pct
+        trends.append({
+            "employee_id": cur["employee_id"],
+            "employee_name": cur["employee_name"],
+            "current_pct": cur["utilisation_pct"],
+            "previous_pct": prev_pct,
+            "change": round(diff, 1),
+        })
+
+    # Sort by change
+    trends.sort(key=lambda x: x["change"], reverse=True)
+
+    most_improved = [t for t in trends if t["change"] > 0][:3]
+    most_declined = [t for t in reversed(trends) if t["change"] < 0][:3]
+
+    # Sort by pure demand (appointments)
+    demand_sorted = sorted(current_util, key=lambda x: x["appointment_count"], reverse=True)
+    high_demand = demand_sorted[:3]
+    low_demand = demand_sorted[-3:] if len(demand_sorted) >= 3 else []
+
+    return {
+        "period_days": period_days,
+        "most_improved": most_improved,
+        "most_declined": most_declined,
+        "highest_demand": high_demand,
+        "lowest_demand": low_demand,
+    }
+
+
+def get_customer_insights(session: Session, start_date: date, end_date: date) -> dict:
+    """
+    Analyse customer behaviour: recurring customers, top customers, preferred services,
+    and cancellation/churn metrics.
+    """
+    from sqlalchemy.orm import aliased
+    from backend.models import Skill
+
+    # All tasks with a customer name in the period
+    query = (
+        session.query(
+            Task.customer_name,
+            TaskSchedule.status,
+            Skill.name.label("service_name"),
+            Employee.name.label("employee_name"),
+        )
+        .join(TaskSchedule, Task.id == TaskSchedule.task_id)
+        .join(Skill, Task.required_skill_id == Skill.id)
+        .join(Employee, TaskSchedule.employee_id == Employee.id)
+        .filter(
+            Task.customer_name.isnot(None),
+            Task.customer_name != "",
+            TaskSchedule.scheduled_date.between(start_date, end_date),
+        )
+    )
+
+    records = query.all()
+
+    customer_stats = defaultdict(lambda: {
+        "total": 0, "completed": 0, "cancelled": 0, "no_show": 0,
+        "services": {}, "employees": {}
+    })
+
+    total_appointments = len(records)
+    total_cancelled = 0
+
+    for r in records:
+        cust = r.customer_name
+        st = r.status
+        svc = r.service_name
+        emp = r.employee_name
+
+        customer_stats[cust]["total"] += 1
+        if st == "cancelled":
+            customer_stats[cust]["cancelled"] += 1
+            total_cancelled += 1
+        elif st == "no_show":
+            customer_stats[cust]["no_show"] += 1
+        else:
+            customer_stats[cust]["completed"] += 1
+
+        customer_stats[cust]["services"][svc] = customer_stats[cust]["services"].get(svc, 0) + 1
+        customer_stats[cust]["employees"][emp] = customer_stats[cust]["employees"].get(emp, 0) + 1
+
+    # Format the top customers
+    customers_list = []
+    for name, stats in customer_stats.items():
+        # Find top service
+        fav_svc = max(stats["services"].items(), key=lambda x: x[1])[0] if stats["services"] else "Unknown"
+        # Find top employee
+        fav_emp = max(stats["employees"].items(), key=lambda x: x[1])[0] if stats["employees"] else "Unknown"
+
+        churn_risk = False
+        # Simple proxy for churn risk: Multiple cancellations/no-shows or high cancel rate
+        fail_rate = (stats["cancelled"] + stats["no_show"]) / stats["total"]
+        if stats["total"] > 1 and fail_rate >= 0.5:
+            churn_risk = True
+
+        customers_list.append({
+            "name": name,
+            "total_appointments": stats["total"],
+            "completed": stats["completed"],
+            "cancellations": stats["cancelled"],
+            "no_shows": stats["no_show"],
+            "favourite_service": fav_svc,
+            "favourite_employee": fav_emp,
+            "churn_risk": churn_risk,
+        })
+
+    # Sort by total appointments to find "Top/Recurring"
+    customers_list.sort(key=lambda x: x["total_appointments"], reverse=True)
+    top_customers = customers_list[:10]
+    returning = [c for c in customers_list if c["total_appointments"] > 1]
+    at_risk = [c for c in customers_list if c["churn_risk"]]
+
+    cancellation_rate = round((total_cancelled / total_appointments * 100) if total_appointments > 0 else 0, 1)
+
+    return {
+        "period": {"start": start_date.isoformat(), "end": end_date.isoformat()},
+        "total_tracked_customers": len(customer_stats),
+        "recurring_customers": len(returning),
+        "cancellation_rate_pct": cancellation_rate,
+        "top_customers": top_customers,
+        "churn_risk_customers": at_risk,
+    }

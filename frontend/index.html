@@ -319,10 +319,50 @@
     </div>
 </div>
 
+<!-- Manual Override Modal -->
+<div class="modal-overlay" id="modal-override">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="override-title">⭐ Manual Board Override</h2>
+            <button class="modal-close" onclick="Utils.closeModal('modal-override')">&times;</button>
+        </div>
+        <form id="override-form">
+            <div class="modal-body">
+                <p style="font-size:13px; color:var(--warning); margin-bottom:15px;">
+                    ⚠️ Forcing an override bypasses the rules engine, skills checks, and buffer times. 
+                </p>
+                <div class="form-group">
+                    <label>Task</label>
+                    <input class="form-input" id="override_task_name" readonly style="background:var(--bg-secondary)">
+                </div>
+                <div class="form-group">
+                    <label>Assigned Employee</label>
+                    <select class="form-select" id="override_employee" required></select>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Start Time</label>
+                        <input class="form-input" id="override_start" type="time" required>
+                    </div>
+                    <div class="form-group">
+                        <label>End Time</label>
+                        <input class="form-input" id="override_end" type="time" required>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="Utils.closeModal('modal-override')">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="background:var(--warning); color:#fff; border-color:var(--warning)">⚡ Force Reassign</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-container" class="toast-container"></div>
 
 <!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/api.js"></script>
 <script src="js/scheduler.js"></script>
