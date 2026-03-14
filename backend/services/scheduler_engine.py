@@ -99,8 +99,8 @@ def find_earliest_slot(
     if window is None:
         return None
 
-    win_start_dt = datetime.combine(target_date, window[0], tzinfo=timezone.utc)
-    win_end_dt = datetime.combine(target_date, window[1], tzinfo=timezone.utc)
+    win_start_dt = datetime.combine(target_date, window[0])
+    win_end_dt = datetime.combine(target_date, window[1])
 
     total_needed = timedelta(minutes=duration_minutes + buffer_minutes)
 
@@ -193,7 +193,7 @@ def auto_schedule_all(session: Session, target_date: date) -> dict:
     unassigned = (
         session.query(Task)
         .filter(Task.status == "unassigned")
-        .order_by(Task.priority_weight.desc(), Task.deadline.asc().nullslast())
+        .order_by(Task.priority_weight.desc(), Task.deadline.is_(None), Task.deadline.asc())
         .all()
     )
 
