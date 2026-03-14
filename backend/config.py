@@ -15,16 +15,15 @@ def _load_settings():
         return json.load(fh)
 
 
+_SUPABASE_URL = "postgresql://postgres.wjnykbqpwodjxsumqcoe:P9rStDvUmWvWRWRF@aws-1-eu-west-3.pooler.supabase.com:6543/postgres"
+
+
 class Config:
     """Base configuration — always inherits from this."""
     SECRET_KEY = os.environ.get("SECRET_KEY", os.urandom(32).hex())
-    DATABASE_URL = os.environ.get(
-        "DATABASE_URL",
-        "postgresql://postgres:P9rStDvUmWvWRWRF@db.wjnykbqpwodjxsumqcoe.supabase.co:5432/postgres",
-    )
+    DATABASE_URL = os.environ.get("DATABASE_URL", _SUPABASE_URL)
     SQLALCHEMY_ECHO = False
     SETTINGS = _load_settings()
-    # Scheduling
     BUFFER_DEFAULTS = SETTINGS.get("scheduling", {})
     PRIORITY_WEIGHTS = SETTINGS.get("priority", {})
     BUSINESS = SETTINGS.get("business", {})
@@ -42,10 +41,7 @@ class ProductionConfig(Config):
 
 class TestingConfig(Config):
     TESTING = True
-    DATABASE_URL = os.environ.get(
-        "TEST_DATABASE_URL",
-        "postgresql://postgres:P9rStDvUmWvWRWRF@db.wjnykbqpwodjxsumqcoe.supabase.co:5432/postgres",
-    )
+    DATABASE_URL = os.environ.get("TEST_DATABASE_URL", _SUPABASE_URL)
 
 
 config_map = {
