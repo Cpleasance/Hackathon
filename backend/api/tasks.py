@@ -62,6 +62,8 @@ def cancel_task(task_id):
     task = session.query(Task).filter_by(id=task_id).first()
     if not task:
         raise NotFoundError("Task not found")
-    task.status = "cancelled"
+    if task.schedule:
+        session.delete(task.schedule)
+    session.delete(task)
     session.commit()
-    return jsonify({"status": "cancelled", "task_id": task_id})
+    return jsonify({"status": "deleted", "task_id": task_id})
