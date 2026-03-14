@@ -24,7 +24,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from backend.models import (
-    Task, TaskSchedule, Employee, EmployeeSkill, EmployeeAvailability, Skill,
+    Task, TaskSchedule, Employee, EmployeeSkill, EmployeeAvailability, EmployeeBreak, Skill,
 )
 from backend.services.buffer_calculator import get_buffer_minutes
 from backend.services.priority_engine import composite_score
@@ -74,7 +74,13 @@ def _get_employee_window(session: Session, employee_id, target_date: date) -> tu
 
 
 def _get_booked_slots(session: Session, employee_id, target_date: date) -> list[tuple[datetime, datetime]]:
-    """Return sorted list of (start, end) for existing non-cancelled schedules."""
+    """
+    Return sorted list of (start, end) for *occupied* time on a day.
+
+    This includes:
+      - existing non-cancelled schedules
+      - any defined employee breaks (lunch / general breaks)
+    """
     scheds = (
         session.query(TaskSchedule)
         .filter(
@@ -85,7 +91,32 @@ def _get_booked_slots(session: Session, employee_id, target_date: date) -> list[
         .order_by(TaskSchedule.start_time)
         .all()
     )
-    return [(s.start_time, s.end_time) for s in scheds]
+    booked: list[tuple[datetime, datetime]] = [(s.start_time, s.end_time) for s in scheds]
+
+    # Add breaks as additional "booked" slots
+    dow = _schema_dow(target_date.weekday())
+
+    # Recurring breaks for this weekday
+    recurring_breaks = session.query(EmployeeBreak).filter(
+        EmployeeBreak.employee_id == employee_id,
+        EmployeeBreak.is_recurring.is_(True),
+        EmployeeBreak.day_of_week == dow,
+    ).all()
+
+    # One-off breaks for this specific date
+    override_breaks = session.query(EmployeeBreak).filter(
+        EmployeeBreak.employee_id == employee_id,
+        EmployeeBreak.is_recurring.is_(False),
+        EmployeeBreak.override_date == target_date,
+    ).all()
+
+    for b in list(recurring_breaks) + list(override_breaks):
+        start_dt = datetime.combine(target_date, b.start_time)
+        end_dt = datetime.combine(target_date, b.end_time)
+        booked.append((start_dt, end_dt))
+
+    booked.sort(key=lambda t: t[0])
+    return booked
 
 
 def find_earliest_slot(

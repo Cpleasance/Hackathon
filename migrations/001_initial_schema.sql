@@ -23,6 +23,7 @@ CREATE TYPE schedule_status AS ENUM (
 DROP TABLE IF EXISTS task_schedules CASCADE;
 DROP TABLE IF EXISTS tasks CASCADE;
 DROP TABLE IF EXISTS employee_availability CASCADE;
+DROP TABLE IF EXISTS employee_breaks CASCADE;
 DROP TABLE IF EXISTS employee_skills CASCADE;
 DROP TABLE IF EXISTS employees CASCADE;
 DROP TABLE IF EXISTS skills CASCADE;
@@ -90,6 +91,25 @@ CREATE TABLE employee_availability (
         (is_recurring = TRUE AND day_of_week IS NOT NULL AND override_date IS NULL) OR
         (is_recurring = FALSE AND override_date IS NOT NULL)
     ),
+
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- =============================================================
+-- EMPLOYEE BREAKS
+-- =============================================================
+
+CREATE TABLE employee_breaks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    employee_id UUID NOT NULL,
+    day_of_week SMALLINT,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    is_recurring BOOLEAN NOT NULL DEFAULT TRUE,
+    override_date DATE,
+
+    CHECK (day_of_week BETWEEN 0 AND 6),
+    CHECK (end_time > start_time),
 
     FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
 );
