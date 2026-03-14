@@ -20,7 +20,7 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", os.urandom(32).hex())
     DATABASE_URL = os.environ.get(
         "DATABASE_URL",
-        "postgresql://scheduler:scheduler@localhost:5432/scheduler",
+        f"sqlite:///{BASE_DIR}/scheduler.db",
     )
     SQLALCHEMY_ECHO = False
     SETTINGS = _load_settings()
