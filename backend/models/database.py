@@ -10,11 +10,9 @@ from uuid import uuid4
 from sqlalchemy import (
     create_engine, Column, String, Integer, SmallInteger, Boolean, Text,
     Date, Time, DateTime, ForeignKey, UniqueConstraint, CheckConstraint,
-    Enum as SAEnum, Index, text,
+    Enum as SAEnum, Index, text, Uuid,
 )
 
-# Use standard SQLAlchemy types (SQLite-compatible)
-UUID = String  # store UUIDs as strings
 TIMESTAMP = DateTime  # store timestamps as DateTime
 from sqlalchemy.orm import (
     DeclarativeBase, relationship, Session, sessionmaker, scoped_session,
@@ -40,7 +38,7 @@ class Base(DeclarativeBase):
 class Skill(Base):
     __tablename__ = "skills"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(Uuid(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
     name = Column(String(100), nullable=False, unique=True)
     category = Column(String(60))
     description = Column(Text)
@@ -67,7 +65,7 @@ class Skill(Base):
 class Employee(Base):
     __tablename__ = "employees"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(Uuid(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
     name = Column(String(150), nullable=False)
     role = Column(String(100), nullable=False)
     daily_minutes = Column(Integer, nullable=False, default=480)
@@ -112,10 +110,10 @@ class EmployeeSkill(Base):
     __tablename__ = "employee_skills"
 
     employee_id = Column(
-        String(36), ForeignKey("employees.id", ondelete="CASCADE"), primary_key=True,
+        Uuid(as_uuid=False), ForeignKey("employees.id", ondelete="CASCADE"), primary_key=True,
     )
     skill_id = Column(
-        String(36), ForeignKey("skills.id", ondelete="CASCADE"), primary_key=True,
+        Uuid(as_uuid=False), ForeignKey("skills.id", ondelete="CASCADE"), primary_key=True,
     )
     proficiency_level = Column(SmallInteger, nullable=False, default=1)
     certified_date = Column(Date)
@@ -138,9 +136,9 @@ class EmployeeSkill(Base):
 class EmployeeAvailability(Base):
     __tablename__ = "employee_availability"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(Uuid(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
     employee_id = Column(
-        String(36), ForeignKey("employees.id", ondelete="CASCADE"), nullable=False,
+        Uuid(as_uuid=False), ForeignKey("employees.id", ondelete="CASCADE"), nullable=False,
     )
     day_of_week = Column(SmallInteger)
     start_time = Column(Time, nullable=False)
@@ -170,9 +168,9 @@ class EmployeeAvailability(Base):
 class EmployeeBreak(Base):
     __tablename__ = "employee_breaks"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(Uuid(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
     employee_id = Column(
-        String(36), ForeignKey("employees.id", ondelete="CASCADE"), nullable=False,
+        Uuid(as_uuid=False), ForeignKey("employees.id", ondelete="CASCADE"), nullable=False,
     )
     day_of_week = Column(SmallInteger)
     start_time = Column(Time, nullable=False)
@@ -200,13 +198,13 @@ class EmployeeBreak(Base):
 class Task(Base):
     __tablename__ = "tasks"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(Uuid(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
     task_name = Column(String(200), nullable=False)
     duration_minutes = Column(Integer, nullable=False)
     priority_level = Column(SmallInteger, nullable=False, default=3)
     priority_weight = Column(Integer, nullable=False, default=50)
     required_skill_id = Column(
-        String(36), ForeignKey("skills.id"), nullable=False,
+        Uuid(as_uuid=False), ForeignKey("skills.id"), nullable=False,
     )
     preferred_start = Column(DateTime)
     deadline = Column(DateTime)
@@ -249,13 +247,13 @@ class Task(Base):
 class TaskSchedule(Base):
     __tablename__ = "task_schedules"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    id = Column(Uuid(as_uuid=False), primary_key=True, default=lambda: str(uuid4()))
     task_id = Column(
-        String(36), ForeignKey("tasks.id", ondelete="CASCADE"),
+        Uuid(as_uuid=False), ForeignKey("tasks.id", ondelete="CASCADE"),
         nullable=False, unique=True,
     )
     employee_id = Column(
-        String(36), ForeignKey("employees.id"), nullable=False,
+        Uuid(as_uuid=False), ForeignKey("employees.id"), nullable=False,
     )
     scheduled_date = Column(Date, nullable=False)
     start_time = Column(DateTime, nullable=False)

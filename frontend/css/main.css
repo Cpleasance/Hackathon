@@ -479,6 +479,31 @@ body {
 
 .appt-block.status-completed { opacity: 0.5; }
 .appt-block.status-cancelled { opacity: 0.3; text-decoration: line-through; }
+
+.break-block {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 10px;
+    font-weight: 500;
+    overflow: hidden;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(100,100,120,0.08),
+        rgba(100,100,120,0.08) 4px,
+        rgba(100,100,120,0.16) 4px,
+        rgba(100,100,120,0.16) 8px
+    );
+    border: 1px solid rgba(100,100,120,0.25);
+    color: var(--text-muted);
+    z-index: 1;
+    pointer-events: none;
+    cursor: default;
+}
+.break-block .appt-name { font-weight: 600; white-space: nowrap; }
+.break-block .appt-time { font-size: 9px; opacity: 0.7; }
 .appt-block.status-in_progress { animation: pulse-border 2s infinite; }
 
 @keyframes pulse-border {
