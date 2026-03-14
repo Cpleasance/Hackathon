@@ -35,10 +35,6 @@ const API = (() => {
         }
     }
 
-    async function cancelTask(id) {
-        return _req('PATCH', `/tasks/${id}`, { status: 'cancelled' });
-    }
-
     async function completeTask(id) {
         return _req('PATCH', `/tasks/${id}`, { status: 'completed' });
     }
