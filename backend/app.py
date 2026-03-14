@@ -33,8 +33,20 @@ def create_app(config_name: str | None = None) -> Flask:
     )
     app.config.from_object(cfg)
 
-    # CORS for API routes
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    # CORS for API routes (restrict origins)
+    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5000", "http://127.0.0.1:5000"]}})
+
+    # Basic API Key Auth
+    @app.before_request
+    def require_api_key():
+        from flask import request, jsonify
+        if request.path.startswith("/api/") and request.method != "OPTIONS":
+            # Allow public access to settings
+            if request.path == "/api/settings":
+                return
+            token = request.headers.get("X-API-Key")
+            if token != "hackathon-secret-key":
+                return jsonify({"error": "Unauthorized"}), 401
 
     # Database
     init_db(cfg.DATABASE_URL, echo=cfg.SQLALCHEMY_ECHO)

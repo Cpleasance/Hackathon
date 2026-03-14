@@ -212,6 +212,24 @@ def auto_schedule_all(session: Session, target_date: date) -> dict:
     failed = []
 
     for _score, task in scored:
+        # Check deadline compatibility
+        if task.deadline and task.deadline.date() < target_date:
+            failed.append({
+                "task_id": str(task.id),
+                "task_name": task.task_name,
+                "reason": "Deadline is before target date",
+            })
+            continue
+            
+        # Check preferred start compatibility (if strictly set on another date)
+        if task.preferred_start and task.preferred_start.date() != target_date:
+            failed.append({
+                "task_id": str(task.id),
+                "task_name": task.task_name,
+                "reason": "Preferred start date does not match target date",
+            })
+            continue
+
         result = schedule_task(session, task, target_date)
         if result:
             scheduled.append(result)
