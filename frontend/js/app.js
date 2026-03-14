@@ -29,6 +29,7 @@ const App = (() => {
         Tasks.init();
         Employees.init();
         Analytics.init();
+        Settings.init();
 
         // Set initial view
         switchView('schedule');
@@ -70,6 +71,7 @@ const App = (() => {
         if (view === 'tasks') Tasks.render();
         if (view === 'employees') Employees.render();
         if (view === 'analytics') Analytics.render();
+        if (view === 'settings') Settings.render();
     }
 
     return { init, switchView };

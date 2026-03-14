@@ -72,6 +72,7 @@ class Employee(Base):
     role = Column(String(100), nullable=False)
     daily_minutes = Column(Integer, nullable=False, default=480)
     is_active = Column(Boolean, nullable=False, default=True)
+    status = Column(String(20), nullable=False, default="active")  # active | inactive | sick | holiday
     email = Column(String(255), unique=True)
     phone = Column(String(30))
     notes = Column(Text)
@@ -91,6 +92,7 @@ class Employee(Base):
             "role": self.role,
             "daily_minutes": self.daily_minutes,
             "is_active": self.is_active,
+            "status": self.status or ("active" if self.is_active else "inactive"),
             "email": self.email,
             "phone": self.phone,
             "notes": self.notes,

@@ -79,5 +79,10 @@ const API = (() => {
 
         // Settings
         getSettings: () => _req('GET', '/settings'),
+        saveSettings: (d) => _req('PUT', '/settings', d),
+
+        // Analytics Extras
+        getPeaks: (params = '') => _req('GET', `/analytics/peaks?${params}`),
+        getRecommendations: (params = '') => _req('GET', `/analytics/recommendations?${params}`),
     };
 })();

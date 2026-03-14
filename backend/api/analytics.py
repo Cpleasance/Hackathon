@@ -5,7 +5,8 @@ from backend.models import get_session
 from backend.utils.errors import ValidationError
 from backend.services.analytics_engine import (
     get_utilisation_by_employee, get_demand_by_hour, get_demand_by_day,
-    get_no_show_rate, get_staffing_recommendation,
+    get_no_show_rate, get_staffing_recommendation, get_peak_times,
+    get_recommendations,
 )
 
 bp = Blueprint("analytics", __name__, url_prefix="/api/analytics")
@@ -67,4 +68,20 @@ def staffing():
         raise ValidationError("date must be YYYY-MM-DD")
     session = get_session()
     data = get_staffing_recommendation(session, target)
+    return jsonify(data)
+
+
+@bp.route("/peaks", methods=["GET"])
+def peaks():
+    start_date, end_date = _parse_date_range()
+    session = get_session()
+    data = get_peak_times(session, start_date, end_date)
+    return jsonify({"start_date": start_date.isoformat(), "end_date": end_date.isoformat(), "data": data})
+
+
+@bp.route("/recommendations", methods=["GET"])
+def recommendations():
+    start_date, end_date = _parse_date_range()
+    session = get_session()
+    data = get_recommendations(session, start_date, end_date)
     return jsonify(data)
