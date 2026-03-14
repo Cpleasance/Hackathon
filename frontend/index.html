@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scheduler — Intelligent Workflow Platform</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+<div class="app-shell">
+
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="logo-icon">S</div>
+            <div class="logo-text">Scheduler</div>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-section-label">Operations</div>
+            <div class="nav-item active" data-view="schedule">
+                <span class="nav-icon">📅</span> Schedule Board
+            </div>
+            <div class="nav-item" data-view="tasks">
+                <span class="nav-icon">📋</span> Task Queue
+                <span class="nav-badge" id="nav-unassigned-count" style="display: none;">0</span>
+            </div>
+            <div class="nav-item" data-view="employees">
+                <span class="nav-icon">👥</span> Team
+            </div>
+
+            <div class="nav-section-label">Intelligence</div>
+            <div class="nav-item" data-view="analytics">
+                <span class="nav-icon">📊</span> Analytics
+            </div>
+            <div class="nav-item" data-view="settings">
+                <span class="nav-icon">⚙️</span> Settings
+            </div>
+        </nav>
+    </aside>
+
+    <!-- ===== Main Area ===== -->
+    <div class="main-area">
+
+        <!-- Header -->
+        <header class="header">
+            <h1 id="header-title" class="header-title">Schedule Board</h1>
+            <div class="header-date" id="header-date"></div>
+            <div class="header-spacer"></div>
+            <div class="header-actions">
+                <button class="btn btn-secondary btn-sm" onclick="location.reload()">↻ Refresh</button>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content">
+
+            <!-- ===== SCHEDULE VIEW ===== -->
+            <div id="view-schedule" class="view active">
+
+                <div class="stat-grid">
+                    <div class="stat-tile accent">
+                        <div class="stat-label">Appointments</div>
+                        <div class="stat-value" id="stat-appointments">—</div>
+                    </div>
+                    <div class="stat-tile success">
+                        <div class="stat-label">Booked Time</div>
+                        <div class="stat-value" id="stat-booked-mins">—</div>
+                    </div>
+                    <div class="stat-tile warning">
+                        <div class="stat-label">Utilisation</div>
+                        <div class="stat-value" id="stat-utilisation">—</div>
+                    </div>
+                    <div class="stat-tile">
+                        <div class="stat-label">Active Staff</div>
+                        <div class="stat-value" id="stat-employees">—</div>
+                    </div>
+                </div>
+
+                <div class="schedule-board">
+                    <div class="schedule-board-header">
+                        <div class="board-controls">
+                            <div class="board-date-nav">
+                                <button class="btn btn-secondary btn-sm btn-icon" id="board-prev">◀</button>
+                                <div class="date-display" id="board-date"></div>
+                                <button class="btn btn-secondary btn-sm btn-icon" id="board-next">▶</button>
+                                <button class="btn btn-secondary btn-sm" id="board-today">Today</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="btn-auto-schedule">⚡ Auto-Schedule</button>
+                    </div>
+
+                    <div class="schedule-grid-wrapper">
+                        <div class="schedule-grid">
+                            <div class="time-header">
+                                <div class="emp-label">Employee</div>
+                                <div class="time-slots">
+                                    <div class="time-slot">09:00</div>
+                                    <div class="time-slot">10:00</div>
+                                    <div class="time-slot">11:00</div>
+                                    <div class="time-slot">12:00</div>
+                                    <div class="time-slot">13:00</div>
+                                    <div class="time-slot">14:00</div>
+                                    <div class="time-slot">15:00</div>
+                                    <div class="time-slot">16:00</div>
+                                    <div class="time-slot">17:00</div>
+                                </div>
+                            </div>
+                            <div id="schedule-rows"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TASKS VIEW ===== -->
+            <div id="view-tasks" class="view">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <select class="form-select" id="task-filter" style="width: 180px;">
+                            <option value="">All Tasks</option>
+                            <option value="unassigned">Unassigned</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="in_progress">In Progress</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="btn-new-task">+ New Task</button>
+                </div>
+                <div id="task-list" class="task-queue"></div>
+            </div>
+
+            <!-- ===== EMPLOYEES VIEW ===== -->
+            <div id="view-employees" class="view">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+                    <button class="btn btn-primary btn-sm" id="btn-new-employee">+ New Employee</button>
+                </div>
+                <div class="card">
+                    <div id="employee-list"></div>
+                </div>
+            </div>
+
+            <!-- ===== ANALYTICS VIEW ===== -->
+            <div id="view-analytics" class="view">
+                <div id="analytics-content" style="position: relative; min-height: 300px;"></div>
+            </div>
+
+            <!-- ===== SETTINGS VIEW ===== -->
+            <div id="view-settings" class="view">
+                <div class="card">
+                    <div class="card-header"><h3>Operational Settings</h3></div>
+                    <div class="card-body">
+                        <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                            Settings are loaded from <code style="font-family: var(--font-mono); background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px;">config/settings.json</code>. Edit the file and restart the server to apply changes.
+                        </p>
+                        <div class="grid-2">
+                            <div class="card">
+                                <div class="card-header"><h3>Business Hours</h3></div>
+                                <div class="card-body">
+                                    <div class="form-group">
+                                        <label>Opening Time</label>
+                                        <input class="form-input" value="09:00" disabled>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Closing Time</label>
+                                        <input class="form-input" value="17:00" disabled>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Slot Granularity</label>
+                                        <input class="form-input" value="15 minutes" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header"><h3>Scheduling Engine</h3></div>
+                                <div class="card-body">
+                                    <div class="form-group">
+                                        <label>Default Buffer</label>
+                                        <input class="form-input" value="5 minutes" disabled>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Colour Buffer</label>
+                                        <input class="form-input" value="10 minutes" disabled>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Conflict Resolution</label>
+                                        <input class="form-input" value="Auto-reassign" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- .content -->
+    </div><!-- .main-area -->
+</div><!-- .app-shell -->
+
+<!-- ===== MODALS ===== -->
+
+<!-- New Task Modal -->
+<div class="modal-overlay" id="modal-task">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>New Task</h2>
+            <button class="modal-close">&times;</button>
+        </div>
+        <form id="task-form">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Task Name</label>
+                    <input class="form-input" name="task_name" required placeholder="e.g. Cut & Style — Jane">
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Duration (minutes)</label>
+                        <input class="form-input" name="duration_minutes" type="number" min="5" max="480" value="30" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Required Skill</label>
+                        <select class="form-select" name="required_skill_id" id="task-skill" required></select>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Priority Level (1–5)</label>
+                        <select class="form-select" name="priority_level">
+                            <option value="1">1 — Minimal</option>
+                            <option value="2">2 — Low</option>
+                            <option value="3" selected>3 — Medium</option>
+                            <option value="4">4 — High</option>
+                            <option value="5">5 — Critical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Priority Weight (1–100)</label>
+                        <input class="form-input" name="priority_weight" type="number" min="1" max="100" value="50">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Customer Name</label>
+                    <input class="form-input" name="customer_name" placeholder="Optional">
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Preferred Start</label>
+                        <input class="form-input" name="preferred_start" type="datetime-local">
+                    </div>
+                    <div class="form-group">
+                        <label>Deadline</label>
+                        <input class="form-input" name="deadline" type="datetime-local">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Customer Notes</label>
+                    <textarea class="form-input" name="customer_notes" rows="2" placeholder="Optional"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="Utils.closeModal('modal-task')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Task</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- New Employee Modal -->
+<div class="modal-overlay" id="modal-employee">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>New Employee</h2>
+            <button class="modal-close">&times;</button>
+        </div>
+        <form id="employee-form">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input class="form-input" name="emp_name" required placeholder="e.g. Alice Mercer">
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Role</label>
+                        <input class="form-input" name="emp_role" required placeholder="e.g. Senior Stylist">
+                    </div>
+                    <div class="form-group">
+                        <label>Daily Capacity (mins)</label>
+                        <input class="form-input" name="daily_minutes" type="number" min="60" max="720" value="480">
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input class="form-input" name="emp_email" type="email" placeholder="Optional">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input class="form-input" name="emp_phone" placeholder="Optional">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="Utils.closeModal('modal-employee')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Employee</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container" class="toast-container"></div>
+
+<!-- Scripts -->
+<script src="js/utils.js"></script>
+<script src="js/api.js"></script>
+<script src="js/scheduler.js"></script>
+<script src="js/tasks.js"></script>
+<script src="js/employees.js"></script>
+<script src="js/analytics.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
