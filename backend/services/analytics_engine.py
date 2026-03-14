@@ -172,3 +172,124 @@ def get_staffing_recommendation(session: Session, target_date: date) -> dict:
         "active_employees": active,
         "recommendation": recommendation,
     }
+
+
+def get_peak_times(session: Session, start_date: date, end_date: date) -> dict:
+    """
+    Identify the top peak hours and peak days from real schedule data.
+    Returns top 3 peak hours and top 3 peak days with appointment counts.
+    """
+    hourly = get_demand_by_hour(session, start_date, end_date)
+    daily = get_demand_by_day(session, start_date, end_date)
+
+    # Sort by appointment count descending
+    sorted_hours = sorted(hourly, key=lambda x: x["appointments"], reverse=True)
+    sorted_days = sorted(daily, key=lambda x: x["appointments"], reverse=True)
+
+    peak_hours = sorted_hours[:3]
+    off_peak_hours = sorted_hours[-3:] if len(sorted_hours) >= 3 else []
+    peak_days = sorted_days[:3]
+    quiet_days = sorted_days[-3:] if len(sorted_days) >= 3 else []
+
+    return {
+        "peak_hours": peak_hours,
+        "off_peak_hours": list(reversed(off_peak_hours)),
+        "peak_days": peak_days,
+        "quiet_days": list(reversed(quiet_days)),
+    }
+
+
+def get_recommendations(session: Session, start_date: date, end_date: date) -> dict:
+    """
+    Generate actionable recommendations for the calendar manager based on
+    utilisation, demand patterns, and no-show rates.
+    """
+    utilisation = get_utilisation_by_employee(session, start_date, end_date)
+    hourly = get_demand_by_hour(session, start_date, end_date)
+    daily = get_demand_by_day(session, start_date, end_date)
+    no_show = get_no_show_rate(session, 90)
+    peaks = get_peak_times(session, start_date, end_date)
+
+    advisories = []
+
+    # Utilisation-based advisories
+    overloaded = [e for e in utilisation if e["utilisation_pct"] > 85]
+    underused = [e for e in utilisation if e["utilisation_pct"] < 40]
+
+    if overloaded:
+        names = ", ".join(e["employee_name"] for e in overloaded[:3])
+        advisories.append({
+            "type": "warning",
+            "category": "Staff Capacity",
+            "message": f"{names} {'are' if len(overloaded) > 1 else 'is'} over 85% utilised. "
+                       f"Consider redistributing appointments or adding capacity.",
+        })
+
+    if underused:
+        names = ", ".join(e["employee_name"] for e in underused[:3])
+        advisories.append({
+            "type": "info",
+            "category": "Staff Efficiency",
+            "message": f"{names} {'are' if len(underused) > 1 else 'is'} under 40% utilised. "
+                       f"Consider consolidating their appointments or adjusting hours.",
+        })
+
+    # No-show advisory
+    if no_show["no_show_rate_pct"] > 10:
+        advisories.append({
+            "type": "warning",
+            "category": "No-Show Rate",
+            "message": f"No-show rate is {no_show['no_show_rate_pct']}% over the last {no_show['period_days']} days "
+                       f"({no_show['no_shows']} of {no_show['total_appointments']} appointments). "
+                       f"Consider implementing reminder notifications or a cancellation policy.",
+        })
+    elif no_show["no_show_rate_pct"] <= 5 and no_show["total_appointments"] > 0:
+        advisories.append({
+            "type": "success",
+            "category": "No-Show Rate",
+            "message": f"Excellent no-show rate of {no_show['no_show_rate_pct']}%. "
+                       f"Your reminder and booking policies are working well.",
+        })
+
+    # Peak hour advisory
+    if peaks["peak_hours"]:
+        top_hour = peaks["peak_hours"][0]
+        advisories.append({
+            "type": "info",
+            "category": "Peak Demand",
+            "message": f"Busiest time slot is {top_hour['hour']}:00 with {top_hour['appointments']} appointments. "
+                       f"Ensure adequate staffing during this window.",
+        })
+
+    # Peak day advisory
+    if peaks["peak_days"]:
+        top_day = peaks["peak_days"][0]
+        advisories.append({
+            "type": "info",
+            "category": "Busiest Day",
+            "message": f"{top_day['day']} is your busiest day with {top_day['appointments']} appointments. "
+                       f"Prioritise scheduling your most skilled staff on this day.",
+        })
+
+    # Quiet day opportunity
+    if peaks["quiet_days"]:
+        quiet = peaks["quiet_days"][0]
+        advisories.append({
+            "type": "tip",
+            "category": "Growth Opportunity",
+            "message": f"{quiet['day']} has the lowest demand ({quiet['appointments']} appointments). "
+                       f"Consider promotions or discounted slots to drive bookings on this day.",
+        })
+
+    if not advisories:
+        advisories.append({
+            "type": "success",
+            "category": "Overall Health",
+            "message": "Scheduling patterns look healthy. No significant issues detected in the selected period.",
+        })
+
+    return {
+        "period": {"start": start_date.isoformat(), "end": end_date.isoformat()},
+        "advisories": advisories,
+        "peaks": peaks,
+    }

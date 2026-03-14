@@ -147,50 +147,7 @@
 
             <!-- ===== SETTINGS VIEW ===== -->
             <div id="view-settings" class="view">
-                <div class="card">
-                    <div class="card-header"><h3>Operational Settings</h3></div>
-                    <div class="card-body">
-                        <p style="color: var(--text-secondary); margin-bottom: 16px;">
-                            Settings are loaded from <code style="font-family: var(--font-mono); background: var(--bg-elevated); padding: 2px 6px; border-radius: 4px;">config/settings.json</code>. Edit the file and restart the server to apply changes.
-                        </p>
-                        <div class="grid-2">
-                            <div class="card">
-                                <div class="card-header"><h3>Business Hours</h3></div>
-                                <div class="card-body">
-                                    <div class="form-group">
-                                        <label>Opening Time</label>
-                                        <input class="form-input" value="09:00" disabled>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Closing Time</label>
-                                        <input class="form-input" value="17:00" disabled>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Slot Granularity</label>
-                                        <input class="form-input" value="15 minutes" disabled>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card">
-                                <div class="card-header"><h3>Scheduling Engine</h3></div>
-                                <div class="card-body">
-                                    <div class="form-group">
-                                        <label>Default Buffer</label>
-                                        <input class="form-input" value="5 minutes" disabled>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Colour Buffer</label>
-                                        <input class="form-input" value="10 minutes" disabled>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Conflict Resolution</label>
-                                        <input class="form-input" value="Auto-reassign" disabled>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <div id="settings-content" style="position: relative; min-height: 300px;"></div>
             </div>
 
         </div><!-- .content -->
@@ -307,6 +264,61 @@
     </div>
 </div>
 
+<!-- Edit Employee Modal -->
+<div class="modal-overlay" id="modal-employee-edit">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="modal-employee-edit-title">Edit Employee</h2>
+            <button class="modal-close">&times;</button>
+        </div>
+        <form id="employee-edit-form">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input class="form-input" name="edit_name" required placeholder="e.g. Alice Mercer">
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Role</label>
+                        <input class="form-input" name="edit_role" required placeholder="e.g. Senior Stylist">
+                    </div>
+                    <div class="form-group">
+                        <label>Daily Capacity (mins)</label>
+                        <input class="form-input" name="edit_daily_minutes" type="number" min="60" max="720" value="480">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select class="form-select" name="edit_status">
+                        <option value="active">🟢 Active</option>
+                        <option value="sick">🟡 Sick</option>
+                        <option value="holiday">🔵 Holiday</option>
+                        <option value="inactive">⚪ Inactive</option>
+                    </select>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input class="form-input" name="edit_email" type="email" placeholder="Optional">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input class="form-input" name="edit_phone" placeholder="Optional">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea class="form-input" name="edit_notes" rows="2" placeholder="Optional"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="Utils.closeModal('modal-employee-edit')">Cancel</button>
+                <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-container" class="toast-container"></div>
 
@@ -317,6 +329,7 @@
 <script src="js/tasks.js"></script>
 <script src="js/employees.js"></script>
 <script src="js/analytics.js"></script>
+<script src="js/settings.js"></script>
 <script src="js/app.js"></script>
 
 </body>

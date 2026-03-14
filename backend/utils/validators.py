@@ -118,7 +118,15 @@ def validate_employee_input(data: dict) -> tuple[dict, list[str]]:
     clean["email"] = (data.get("email") or "").strip() or None
     clean["phone"] = (data.get("phone") or "").strip() or None
     clean["notes"] = (data.get("notes") or "").strip() or None
-    clean["is_active"] = bool(data.get("is_active", True))
+
+    # Status field — drives is_active for backwards compatibility
+    valid_statuses = {"active", "inactive", "sick", "holiday"}
+    status = (data.get("status") or "active").strip().lower()
+    if status not in valid_statuses:
+        errors.append(f"status must be one of: {', '.join(sorted(valid_statuses))}")
+    else:
+        clean["status"] = status
+        clean["is_active"] = status == "active"
 
     return clean, errors
 

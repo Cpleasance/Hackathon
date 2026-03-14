@@ -43,7 +43,7 @@ def create_app(config_name: str | None = None) -> Flask:
     def require_api_key():
         from flask import request, jsonify
         if request.path.startswith("/api/") and request.method != "OPTIONS":
-            # Allow public access to settings
+            # Allow access to settings (GET and PUT)
             if request.path == "/api/settings":
                 return
             token = request.headers.get("X-API-Key")
@@ -70,11 +70,32 @@ def create_app(config_name: str | None = None) -> Flask:
     def serve_index():
         return send_from_directory(app.static_folder, "index.html")
 
-    # Settings endpoint (read-only)
+    # Settings endpoints — read and write
     @app.route("/api/settings", methods=["GET"])
     def get_settings():
         from flask import jsonify
-        return jsonify(cfg.SETTINGS)
+        from backend.config import SETTINGS_PATH
+        import json
+        with open(SETTINGS_PATH, "r") as fh:
+            return jsonify(json.load(fh))
+
+    @app.route("/api/settings", methods=["PUT"])
+    def save_settings():
+        from flask import request, jsonify
+        from backend.config import SETTINGS_PATH
+        import json
+        data = request.get_json(force=True)
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        with open(SETTINGS_PATH, "w") as fh:
+            json.dump(data, fh, indent=2)
+        # Refresh cfg in memory
+        cfg.SETTINGS = data
+        cfg.BUFFER_DEFAULTS = data.get("scheduling", {})
+        cfg.PRIORITY_WEIGHTS = data.get("priority", {})
+        cfg.BUSINESS = data.get("business", {})
+        cfg.ANALYTICS = data.get("analytics", {})
+        return jsonify({"status": "saved"})
 
     return app
 

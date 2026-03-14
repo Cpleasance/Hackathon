@@ -1,12 +1,27 @@
 /**
- * Employee Management UI
+ * Employee Management UI — list, create, and edit employees.
  */
 const Employees = (() => {
     let allEmployees = [];
+    let editingId = null;
+
+    const STATUS_CONFIG = {
+        active:   { label: 'Active',   color: 'var(--success)', dot: '●' },
+        sick:     { label: 'Sick',     color: 'var(--warning)', dot: '🤒' },
+        holiday:  { label: 'Holiday',  color: '#38bdf8',        dot: '🏖️' },
+        inactive: { label: 'Inactive', color: 'var(--text-muted)', dot: '○' },
+    };
 
     async function init() {
         document.getElementById('btn-new-employee').addEventListener('click', openNewModal);
-        document.getElementById('employee-form').addEventListener('submit', handleSubmit);
+        document.getElementById('employee-form').addEventListener('submit', handleCreateSubmit);
+
+        // Edit modal wiring
+        document.getElementById('employee-edit-form').addEventListener('submit', handleEditSubmit);
+        document.querySelectorAll('#modal-employee-edit .modal-close').forEach(btn =>
+            btn.addEventListener('click', () => Utils.closeModal('modal-employee-edit'))
+        );
+
         render();
     }
 
@@ -22,7 +37,7 @@ const Employees = (() => {
             }
 
             let html = `<table class="data-table"><thead><tr>
-                <th>Name</th><th>Role</th><th>Daily Capacity</th><th>Skills</th><th>Status</th>
+                <th>Name</th><th>Role</th><th>Daily Capacity</th><th>Skills</th><th>Status</th><th></th>
             </tr></thead><tbody>`;
 
             allEmployees.forEach(e => {
@@ -30,15 +45,15 @@ const Employees = (() => {
                     `<span title="Proficiency: ${s.proficiency_level}">${Utils.esc(s.skill_name)}</span>`
                 ).join(', ') || '—';
 
+                const st = STATUS_CONFIG[e.status] || STATUS_CONFIG['inactive'];
+
                 html += `<tr>
-                    <td><strong>${Utils.esc(e.name)}</strong></td>
+                    <td><strong>${Utils.esc(e.name)}</strong>${e.email ? `<br><span style="color:var(--text-muted);font-size:12px;">${Utils.esc(e.email)}</span>` : ''}</td>
                     <td>${Utils.esc(e.role)}</td>
                     <td><span style="font-family: var(--font-mono)">${Utils.durationLabel(e.daily_minutes)}</span></td>
                     <td>${skillList}</td>
-                    <td>${e.is_active
-                        ? '<span style="color: var(--success)">● Active</span>'
-                        : '<span style="color: var(--text-muted)">○ Inactive</span>'
-                    }</td>
+                    <td><span style="color:${st.color}">${st.dot} ${st.label}</span></td>
+                    <td><button class="btn btn-secondary btn-sm" onclick="Employees.openEdit('${e.id}')">✏️ Edit</button></td>
                 </tr>`;
             });
 
@@ -54,7 +69,25 @@ const Employees = (() => {
         Utils.openModal('modal-employee');
     }
 
-    async function handleSubmit(e) {
+    async function openEdit(id) {
+        editingId = id;
+        const emp = allEmployees.find(e => e.id === id);
+        if (!emp) return;
+
+        const f = document.getElementById('employee-edit-form');
+        f.edit_name.value = emp.name || '';
+        f.edit_role.value = emp.role || '';
+        f.edit_daily_minutes.value = emp.daily_minutes || 480;
+        f.edit_email.value = emp.email || '';
+        f.edit_phone.value = emp.phone || '';
+        f.edit_notes.value = emp.notes || '';
+        f.edit_status.value = emp.status || 'active';
+
+        document.getElementById('modal-employee-edit-title').textContent = `Edit — ${emp.name}`;
+        Utils.openModal('modal-employee-edit');
+    }
+
+    async function handleCreateSubmit(e) {
         e.preventDefault();
         const form = e.target;
         const data = {
@@ -63,8 +96,8 @@ const Employees = (() => {
             daily_minutes: parseInt(form.daily_minutes.value),
             email: form.emp_email.value || null,
             phone: form.emp_phone.value || null,
+            status: 'active',
         };
-
         try {
             await API.createEmployee(data);
             Utils.closeModal('modal-employee');
@@ -75,5 +108,28 @@ const Employees = (() => {
         }
     }
 
-    return { init, render };
+    async function handleEditSubmit(e) {
+        e.preventDefault();
+        if (!editingId) return;
+        const form = e.target;
+        const data = {
+            name: form.edit_name.value,
+            role: form.edit_role.value,
+            daily_minutes: parseInt(form.edit_daily_minutes.value),
+            email: form.edit_email.value || null,
+            phone: form.edit_phone.value || null,
+            notes: form.edit_notes.value || null,
+            status: form.edit_status.value,
+        };
+        try {
+            await API.updateEmployee(editingId, data);
+            Utils.closeModal('modal-employee-edit');
+            Utils.toast('Employee updated', 'success');
+            render();
+        } catch (err) {
+            Utils.toast(err.error || 'Failed to update employee', 'error');
+        }
+    }
+
+    return { init, render, openEdit };
 })();
