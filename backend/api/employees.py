@@ -111,3 +111,25 @@ def assign_skill(employee_id):
     session.merge(es)
     session.commit()
     return jsonify({"status": "ok", "employee": emp.name, "skill": skill.name, "proficiency": prof}), 201
+
+
+@bp.route("/<employee_id>/skills/<skill_id>", methods=["DELETE"])
+def remove_skill(employee_id, skill_id):
+    session = get_session()
+    es = session.query(EmployeeSkill).filter_by(employee_id=employee_id, skill_id=skill_id).first()
+    if not es:
+        raise NotFoundError("Skill assignment not found")
+    session.delete(es)
+    session.commit()
+    return jsonify({"status": "removed"})
+
+
+@bp.route("/<employee_id>", methods=["DELETE"])
+def delete_employee(employee_id):
+    session = get_session()
+    emp = session.query(Employee).filter_by(id=employee_id).first()
+    if not emp:
+        raise NotFoundError("Employee not found")
+    session.delete(emp)
+    session.commit()
+    return jsonify({"status": "deleted"})

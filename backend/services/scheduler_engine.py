@@ -134,17 +134,25 @@ def schedule_task(session: Session, task: Task, target_date: date) -> dict | Non
     skill = session.query(Skill).get(task.required_skill_id)
     buffer_min = get_buffer_minutes(skill.category if skill else None)
 
-    # Find qualified employees, ordered by proficiency desc
+    # Find qualified employees, ordered by proficiency desc.
+    # Skip employees who are sick, on holiday (until date hasn't passed), or inactive.
+    today = date.today()
     candidates = (
         session.query(Employee, EmployeeSkill)
         .join(EmployeeSkill, Employee.id == EmployeeSkill.employee_id)
         .filter(
             EmployeeSkill.skill_id == task.required_skill_id,
             Employee.is_active.is_(True),
+            Employee.status.in_(["active"]),  # only active employees
         )
         .order_by(EmployeeSkill.proficiency_level.desc())
         .all()
     )
+    # Also skip employees on holiday whose return date is in the future
+    candidates = [
+        (emp, es) for emp, es in candidates
+        if not (emp.status == "holiday" and emp.holiday_until and emp.holiday_until > target_date)
+    ]
 
     best_slot = None
     best_emp = None
@@ -221,14 +229,9 @@ def auto_schedule_all(session: Session, target_date: date) -> dict:
             })
             continue
             
-        # Check preferred start compatibility (if strictly set on another date)
-        if task.preferred_start and task.preferred_start.date() != target_date:
-            failed.append({
-                "task_id": str(task.id),
-                "task_name": task.task_name,
-                "reason": "Preferred start date does not match target date",
-            })
-            continue
+        # preferred_start is a soft hint — used as a lower-bound by find_earliest_slot.
+        # Do NOT reject tasks just because preferred_start is on a different date;
+        # unassigned tasks from any day can be scheduled onto target_date.
 
         result = schedule_task(session, task, target_date)
         if result:

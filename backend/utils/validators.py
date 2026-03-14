@@ -128,6 +128,16 @@ def validate_employee_input(data: dict) -> tuple[dict, list[str]]:
         clean["status"] = status
         clean["is_active"] = status == "active"
 
+    # Holiday return date
+    hu = data.get("holiday_until")
+    if hu:
+        try:
+            clean["holiday_until"] = date.fromisoformat(str(hu))
+        except (ValueError, TypeError):
+            errors.append("holiday_until must be YYYY-MM-DD")
+    else:
+        clean["holiday_until"] = None
+
     return clean, errors
 
 

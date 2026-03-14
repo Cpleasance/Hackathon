@@ -139,7 +139,7 @@ def get_staffing_recommendation(session: Session, target_date: date) -> dict:
         .filter(
             TaskSchedule.scheduled_date >= lookback_start,
             TaskSchedule.scheduled_date < target_date,
-            (func.dayofweek(TaskSchedule.scheduled_date) - 1) == schema_dow,
+            func.extract("dow", TaskSchedule.scheduled_date) == schema_dow,
             TaskSchedule.status.notin_(["cancelled"]),
         )
         .scalar()

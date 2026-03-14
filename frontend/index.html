@@ -264,6 +264,45 @@
     </div>
 </div>
 
+<!-- Skill Assign Modal -->
+<div class="modal-overlay" id="modal-skill-assign">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="skill-modal-title">Manage Skills</h2>
+            <button class="modal-close" onclick="Utils.closeModal('modal-skill-assign')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="skill-modal-emp-id">
+            <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Current skills for this employee:</p>
+            <div id="skill-current-list" style="margin-bottom:18px;"></div>
+            <hr style="border-color:var(--border);margin-bottom:18px;">
+            <p style="font-size:13px;font-weight:600;margin-bottom:10px;">Add a new skill:</p>
+            <form id="skill-assign-form">
+                <div class="grid-2" style="margin-bottom:12px;">
+                    <div class="form-group">
+                        <label>Skill</label>
+                        <select class="form-select" id="skill-assign-select" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Proficiency (1–5)</label>
+                        <select class="form-select" id="skill-proficiency">
+                            <option value="1">1 — Beginner</option>
+                            <option value="2">2 — Developing</option>
+                            <option value="3" selected>3 — Competent</option>
+                            <option value="4">4 — Proficient</option>
+                            <option value="5">5 — Expert</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;gap:8px;">
+                    <button type="button" class="btn btn-secondary" onclick="Utils.closeModal('modal-skill-assign')">Close</button>
+                    <button type="submit" class="btn btn-primary">+ Assign Skill</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Employee Modal -->
 <div class="modal-overlay" id="modal-employee-edit">
     <div class="modal">
@@ -289,12 +328,16 @@
                 </div>
                 <div class="form-group">
                     <label>Status</label>
-                    <select class="form-select" name="edit_status">
+                    <select class="form-select" name="edit_status" onchange="Employees._toggleHolidayFromSelect ? Employees._toggleHolidayFromSelect(this.value) : document.getElementById('holiday-until-row').style.display = this.value==='holiday'?'':'none'">
                         <option value="active">🟢 Active</option>
                         <option value="sick">🟡 Sick</option>
                         <option value="holiday">🔵 Holiday</option>
                         <option value="inactive">⚪ Inactive</option>
                     </select>
+                </div>
+                <div id="holiday-until-row" class="form-group" style="display:none">
+                    <label>Holiday Return Date</label>
+                    <input class="form-input" name="edit_holiday_until" type="date">
                 </div>
                 <div class="grid-2">
                     <div class="form-group">
