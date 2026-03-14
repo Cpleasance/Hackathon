@@ -42,6 +42,12 @@ const Tasks = (() => {
                     <div class="priority-dot" style="background: ${pc}"></div>
                     <div class="task-info">
                         <div class="task-title">${Utils.esc(t.task_name)}</div>
+                        <div class="task-time">
+                            ${Utils.formatTime(t.created_at)}
+                            <br>
+                            ${t.status === 'scheduled' ? `<button class="btn btn-secondary btn-sm" onclick="Tasks.complete('${t.id}')">Complete</button>` : ''}
+                            ${['unassigned', 'scheduled'].includes(t.status) ? `<button class="btn btn-secondary btn-sm" style="color:var(--danger); border-color:var(--danger)" onclick="Tasks.cancel('${t.id}')">Cancel</button>` : ''}
+                        </div>
                         <div class="task-meta">
                             <span>${Utils.esc(t.customer_name || '—')}</span>
                             <span>${Utils.esc(t.required_skill_name || '')}</span>
@@ -90,5 +96,25 @@ const Tasks = (() => {
         }
     }
 
-    return { init, render };
+    async function complete(id) {
+        if (!confirm('Mark this task as completed?')) return;
+        try {
+            await API.completeTask(id);
+            Utils.toast('Task completed', 'success');
+            render();
+            if (window.Scheduler) Scheduler.render();
+        } catch (e) { Utils.toast(e.error, 'error'); }
+    }
+
+    async function cancel(id) {
+        if (!confirm('Cancel this task?')) return;
+        try {
+            await API.cancelTask(id);
+            Utils.toast('Task cancelled', 'success');
+            render();
+            if (window.Scheduler) Scheduler.render();
+        } catch (e) { Utils.toast(e.error, 'error'); }
+    }
+
+    return { init, render, complete, cancel };
 })();

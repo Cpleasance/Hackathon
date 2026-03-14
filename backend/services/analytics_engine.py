@@ -30,7 +30,7 @@ def get_utilisation_by_employee(session: Session, start_date: date, end_date: da
             Employee.daily_minutes,
             func.count(TaskSchedule.id).label("appointment_count"),
             func.sum(
-                extract("epoch", TaskSchedule.end_time - TaskSchedule.start_time) / 60
+                func.timestampdiff(text('MINUTE'), TaskSchedule.start_time, TaskSchedule.end_time)
             ).label("booked_minutes"),
         )
         .join(Employee, TaskSchedule.employee_id == Employee.id)
@@ -86,7 +86,7 @@ def get_demand_by_day(session: Session, start_date: date, end_date: date) -> lis
     """
     results = (
         session.query(
-            extract("dow", TaskSchedule.scheduled_date).label("dow"),
+            (func.dayofweek(TaskSchedule.scheduled_date) - 1).label("dow"),
             func.count(TaskSchedule.id).label("count"),
         )
         .filter(
@@ -139,7 +139,7 @@ def get_staffing_recommendation(session: Session, target_date: date) -> dict:
         .filter(
             TaskSchedule.scheduled_date >= lookback_start,
             TaskSchedule.scheduled_date < target_date,
-            extract("dow", TaskSchedule.scheduled_date) == schema_dow,
+            (func.dayofweek(TaskSchedule.scheduled_date) - 1) == schema_dow,
             TaskSchedule.status.notin_(["cancelled"]),
         )
         .scalar()

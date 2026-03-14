@@ -51,6 +51,8 @@ const App = (() => {
         // Show/hide views
         document.querySelectorAll('.view').forEach(v => {
             v.classList.toggle('active', v.id === `view-${view}`);
+            // Also explicitly set display for robust hiding
+            v.style.display = (v.id === `view-${view}`) ? 'block' : 'none';
         });
 
         // Update header title
