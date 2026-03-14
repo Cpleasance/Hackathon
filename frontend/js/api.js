@@ -49,8 +49,10 @@ const API = (() => {
         getEmployee: (id) => _req('GET', `/employees/${id}`),
         createEmployee: (d) => _req('POST', '/employees', d),
         updateEmployee: (id, d) => _req('PUT', `/employees/${id}`, d),
+        deleteEmployee: (id) => _req('DELETE', `/employees/${id}`),
         assignSkill: (id, d) => _req('POST', `/employees/${id}/skills`, d),
-        
+        removeSkill: (empId, skillId) => _req('DELETE', `/employees/${empId}/skills/${skillId}`),
+
         // Integrations
         triggerSync: (d) => _req('POST', '/calendar/sync', d),
         triggerEmail: (d) => _req('POST', '/calendar/email', d),
@@ -64,6 +66,7 @@ const API = (() => {
 
         // Schedules
         getSchedules: (params = '') => _req('GET', `/schedules?${params}`),
+        getSchedule: (id) => _req('GET', `/schedules/${id}`),
         createSchedule: (d) => _req('POST', '/schedules', d),
         updateStatus: (id, d) => _req('PATCH', `/schedules/${id}/status`, d),
         forceReassign: (id, d) => _req('PUT', `/schedules/${id}/force`, d),

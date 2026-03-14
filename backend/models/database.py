@@ -73,6 +73,7 @@ class Employee(Base):
     daily_minutes = Column(Integer, nullable=False, default=480)
     is_active = Column(Boolean, nullable=False, default=True)
     status = Column(String(20), nullable=False, default="active")  # active | inactive | sick | holiday
+    holiday_until = Column(Date)   # only relevant when status == 'holiday'
     email = Column(String(255), unique=True)
     phone = Column(String(30))
     notes = Column(Text)
@@ -93,6 +94,7 @@ class Employee(Base):
             "daily_minutes": self.daily_minutes,
             "is_active": self.is_active,
             "status": self.status or ("active" if self.is_active else "inactive"),
+            "holiday_until": self.holiday_until.isoformat() if self.holiday_until else None,
             "email": self.email,
             "phone": self.phone,
             "notes": self.notes,
